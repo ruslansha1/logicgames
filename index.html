@@ -1,0 +1,749 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Сугуру для Дали</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#f1eff8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#14122a" media="(prefers-color-scheme: dark)">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-title" content="Сугуру">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;500;700&family=Manrope:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: одноэкранное приложение, сверху шапка, по центру поле, снизу цифры и инструменты */
+:root {
+  --paper: #f1eff8;
+  --surface: #ffffff;
+  --ink: #1f1b3a;
+  --muted: #6c6789;
+  --line: #d6d1e8;
+  --accent: #d6457a;
+  --accent-soft: #fae1ea;
+  --user: #5b45d1;
+  --error: #d1343f;
+  --sel: #e4ddff;
+  --area: #f4f1ff;
+  --same: #efe9ff;
+  --shadow: 0 1px 2px rgba(31,27,58,.08), 0 8px 24px rgba(31,27,58,.08);
+  --f-display: "Unbounded", "Avenir Next", system-ui, sans-serif;
+  --f-body: "Manrope", -apple-system, "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #14122a; --surface: #1d1a37; --ink: #ece9fc; --muted: #9a94bd; --line: #38335c;
+  --accent: #ff7aa6; --accent-soft: #46203a; --user: #ab9dff; --error: #ff6b74;
+  --sel: #3a3270; --area: #232046; --same: #2c2758;
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
+  color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --paper: #14122a; --surface: #1d1a37; --ink: #ece9fc; --muted: #9a94bd; --line: #38335c;
+  --accent: #ff7aa6; --accent-soft: #46203a; --user: #ab9dff; --error: #ff6b74;
+  --sel: #3a3270; --area: #232046; --same: #2c2758;
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+:root { color-scheme: light; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); box-sizing: border-box; }
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  margin: 0;
+  background: var(--paper); color: var(--ink); font-family: var(--f-body); font-size: 15px;
+  -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none;
+  touch-action: manipulation; overscroll-behavior: none;
+}
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.app {
+  max-width: 480px; margin: 0 auto; min-height: 100%; display: flex; flex-direction: column; gap: 14px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 12px 16px;
+}
+header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.brand { display: flex; flex-direction: column; line-height: 1.1; }
+.brand h1 { font-family: var(--f-display); font-weight: 700; font-size: 26px; letter-spacing: -.02em; margin: 0; }
+.brand h1 span { color: var(--accent); }
+.brand small { color: var(--muted); font-size: 12px; letter-spacing: .04em; margin-top: 3px; }
+.icon-btn {
+  width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface);
+  display: grid; place-items: center; font-weight: 700; font-size: 17px;
+}
+.bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.seg { display: flex; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 3px; flex: 1; min-width: 0; }
+.seg button { flex: 1; border: 0; background: transparent; padding: 8px 4px; border-radius: 9px; font-weight: 600; font-size: 13px; color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.new-btn { border: 0; background: var(--accent); color: #fff; font-weight: 700; padding: 10px 14px; border-radius: 12px; font-size: 13px; }
+.status { display: flex; justify-content: space-between; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.status b { color: var(--ink); font-weight: 600; }
+
+.board-wrap { position: relative; width: min(100%, calc(100svh - 330px)); min-width: min(100%, 300px); margin: 0 auto; }
+.board {
+  position: relative; aspect-ratio: 1; max-width: 100%; background: var(--surface); border-radius: 10px;
+  box-shadow: var(--shadow); display: grid; grid-template-columns: repeat(9, 1fr); grid-template-rows: repeat(9, 1fr); overflow: hidden;
+}
+.cell { position: relative; display: grid; place-items: center; font-family: var(--f-display); font-size: clamp(16px, 5.4vw, 26px); font-weight: 500; color: var(--user); }
+.cell.given { color: var(--ink); font-weight: 700; }
+.cell.area { background: var(--area); }
+.cell.same { background: var(--same); }
+.cell.sel { background: var(--sel); }
+.cell.bad { color: var(--error); }
+.cell.bad::after { content: ""; position: absolute; inset: 18%; border-radius: 50%; background: var(--error); opacity: .13; }
+.cell.hint { animation: pulse 1.2s ease-in-out 3; background: var(--accent-soft); }
+@keyframes pulse { 50% { box-shadow: inset 0 0 0 3px var(--accent); } }
+.notes { position: absolute; inset: 3px; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr);
+  font-family: var(--f-body); font-weight: 600; font-size: clamp(8px, 2.3vw, 11px); color: var(--muted); line-height: 1; }
+.notes span { display: grid; place-items: center; }
+svg.lines { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+svg.lines .thin { stroke: var(--line); stroke-width: .03; }
+svg.lines .thick { stroke: var(--ink); stroke-width: .075; stroke-linecap: round; }
+svg.lines .frame { fill: none; stroke: var(--ink); stroke-width: .15; }
+.loading { position: absolute; inset: 0; display: grid; place-items: center; background: var(--surface); border-radius: 10px;
+  color: var(--muted); font-weight: 600; z-index: 2; }
+
+.pad { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+.pad button {
+  border: 1px solid var(--line); background: var(--surface); border-radius: 14px; height: 58px;
+  font-family: var(--f-display); font-size: 24px; font-weight: 500; color: var(--user); box-shadow: var(--shadow);
+  transition: transform .08s;
+}
+.pad button:active { transform: scale(.94); }
+.pad button:disabled { opacity: .3; box-shadow: none; }
+.pad.noting button { color: var(--muted); font-size: 18px; border-style: dashed; }
+.tools { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.tools button { border: 0; background: transparent; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 0; font-size: 12px; font-weight: 600; color: var(--muted); }
+.tools svg { width: 24px; height: 24px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.tools button[aria-pressed="true"] { color: var(--user); }
+.tools .hint-btn { color: var(--accent); }
+.tools .hint-btn em { font-style: normal; font-size: 11px; background: var(--accent-soft); border-radius: 99px; padding: 0 7px; }
+
+.sheet-back { position: fixed; inset: 0; background: rgba(20,18,42,.45); display: flex; align-items: flex-end; justify-content: center; z-index: 20; }
+.sheet {
+  width: 100%; max-width: 480px; background: var(--surface); border-radius: 22px 22px 0 0; box-shadow: var(--shadow);
+  padding: 22px max(20px, env(safe-area-inset-right, 0px)) calc(20px + env(safe-area-inset-bottom, 0px)) max(20px, env(safe-area-inset-left, 0px));
+  display: flex; flex-direction: column; gap: 12px; animation: up .22s ease-out;
+}
+@keyframes up { from { transform: translateY(30px); opacity: 0; } }
+.sheet h2 { font-family: var(--f-display); font-weight: 700; font-size: 20px; margin: 0; text-wrap: balance; }
+.sheet p { margin: 0; line-height: 1.5; color: var(--ink); }
+.sheet .muted { color: var(--muted); font-size: 13px; }
+.sheet .actions { display: flex; gap: 8px; margin-top: 6px; }
+.sheet .actions button { flex: 1; border: 1px solid var(--line); background: var(--surface); padding: 13px; border-radius: 14px; font-weight: 700; }
+.sheet .actions button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.rule { display: grid; grid-template-columns: 64px 1fr; gap: 12px; align-items: center; }
+.rule svg { width: 64px; height: 64px; }
+.win h2 { font-size: 26px; }
+.win .stats { display: flex; gap: 18px; font-variant-numeric: tabular-nums; }
+.win .stats div { display: flex; flex-direction: column; }
+.win .stats span { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
+.win .stats b { font-family: var(--f-display); font-size: 22px; font-weight: 500; }
+canvas.hearts { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 30; }
+@media (prefers-reduced-motion: reduce) { .cell.hint, .sheet { animation: none; } .pad button { transition: none; } }
+@media (max-height: 640px) { .pad button { height: 48px; } .app { gap: 10px; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand">
+      <h1>Сугуру<span>.</span></h1>
+      <small>головоломки для Дали</small>
+    </div>
+    <button class="icon-btn" id="rulesBtn" aria-label="Правила">?</button>
+  </header>
+
+  <div class="bar">
+    <div class="seg" role="group" aria-label="Сложность">
+      <button id="lvl-easy" data-lvl="easy" aria-pressed="false">Лёгкая</button>
+      <button id="lvl-medium" data-lvl="medium" aria-pressed="true">Средняя</button>
+      <button id="lvl-hard" data-lvl="hard" aria-pressed="false">Сложная</button>
+    </div>
+    <button class="new-btn" id="newBtn">Новая</button>
+  </div>
+
+  <div class="status">
+    <div>Время <b id="timer">0:00</b></div>
+    <div>Решено <b id="solved">0</b></div>
+    <div>Подсказок <b id="hintsUsed">0</b></div>
+  </div>
+
+  <div class="board-wrap">
+    <div class="board" id="board" aria-label="Поле 9 на 9"></div>
+    <div class="loading" id="loading" hidden>Рисую новое поле…</div>
+  </div>
+
+  <div class="pad" id="pad"></div>
+
+  <div class="tools">
+    <button id="undoBtn"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>Отменить</button>
+    <button id="eraseBtn"><svg viewBox="0 0 24 24"><path d="m7 21-4.3-4.3a1 1 0 0 1 0-1.4l10-10a1 1 0 0 1 1.4 0l5.6 5.6a1 1 0 0 1 0 1.4L11 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg>Стереть</button>
+    <button id="notesBtn" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Заметки</button>
+    <button id="hintBtn" class="hint-btn"><svg viewBox="0 0 24 24"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0 0 12 2Z"/></svg>Подсказка</button>
+  </div>
+</div>
+<div id="sheetRoot"></div>
+<script>
+// ===== Движок Сугуру: генератор, решатель, логические шаги =====
+const Suguru = (() => {
+  const N = 9, C = N * N;
+  const NB = [];
+  for (let i = 0; i < C; i++) {
+    const r = (i / N) | 0, c = i % N, a = [];
+    for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+      if (!dr && !dc) continue;
+      const rr = r + dr, cc = c + dc;
+      if (rr >= 0 && rr < N && cc >= 0 && cc < N) a.push(rr * N + cc);
+    }
+    NB.push(a);
+  }
+  const ORTH = [];
+  for (let i = 0; i < C; i++) {
+    const r = (i / N) | 0, c = i % N, a = [];
+    if (r > 0) a.push(i - N); if (r < N - 1) a.push(i + N);
+    if (c > 0) a.push(i - 1); if (c < N - 1) a.push(i + 1);
+    ORTH.push(a);
+  }
+  const bitCount = m => { let n = 0; while (m) { m &= m - 1; n++; } return n; };
+  const lowBit = m => 31 - Math.clz32(m & -m); // индекс младшего бита
+  const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [a[i], a[j]] = [a[j], a[i]]; } return a; };
+
+  // --- Разбиение поля на области (в основном по 5 клеток, иногда 3–4) ---
+  // растим области от «самых зажатых» клеток, чтобы не оставалось обрывков
+  function makeRegions() {
+    const reg = new Array(C).fill(-1);
+    let id = 0;
+    const free = i => { let n = 0; for (const j of ORTH[i]) if (reg[j] === -1) n++; return n; };
+    for (;;) {
+      let starts = [], bd = 9;
+      for (let i = 0; i < C; i++) if (reg[i] === -1) {
+        const f = free(i);
+        if (f < bd) { bd = f; starts = [i]; } else if (f === bd) starts.push(i);
+      }
+      if (!starts.length) break;
+      const s = starts[Math.random() * starts.length | 0];
+      const x = Math.random(), target = x < 0.8 ? 5 : x < 0.93 ? 4 : 3;
+      const cells = [s]; reg[s] = id;
+      while (cells.length < target) {
+        let best = -1, b = 99;
+        for (const c of cells) for (const j of ORTH[c]) if (reg[j] === -1) {
+          const f = free(j) + Math.random() * 1.5;
+          if (f < b) { b = f; best = j; }
+        }
+        if (best < 0) break;
+        reg[best] = id; cells.push(best);
+      }
+      id++;
+    }
+    // обрывки из 1–2 клеток присоединяем к соседям, если влезает
+    const size = new Array(id).fill(0); reg.forEach(r => size[r]++);
+    for (let i = 0; i < C; i++) {
+      const a = reg[i]; if (size[a] >= 3) continue;
+      const opts = ORTH[i].map(j => reg[j]).filter(b => b !== a && size[a] + size[b] <= 5);
+      if (!opts.length) continue;
+      const b = opts[Math.random() * opts.length | 0];
+      for (let k = 0; k < C; k++) if (reg[k] === a) reg[k] = b;
+      size[b] += size[a]; size[a] = 0;
+    }
+    const map = new Map();
+    return reg.map(r => { if (!map.has(r)) map.set(r, map.size); return map.get(r); });
+  }
+
+  function buildGeo(reg) {
+    const regions = [];
+    reg.forEach((r, i) => { (regions[r] = regions[r] || []).push(i); });
+    const size = reg.map(r => regions[r].length);
+    const peers = [];
+    for (let i = 0; i < C; i++) {
+      const s = new Set(NB[i]);
+      for (const j of regions[reg[i]]) if (j !== i) s.add(j);
+      peers.push([...s]);
+    }
+    return { reg, regions, size, peers };
+  }
+
+  // --- Решатель с распространением ограничений, считает решения до limit ---
+  function solve(geo, grid, { limit = 2, random = false, maxNodes = 200000 } = {}) {
+    const { regions, size, peers, reg } = geo;
+    let nodes = 0, count = 0, first = null, aborted = false;
+    const cand = new Array(C), val = new Array(C).fill(0);
+    for (let i = 0; i < C; i++) cand[i] = (1 << size[i]) - 1;
+    function assign(v, cd, i, d) {
+      v[i] = d; cd[i] = 1 << (d - 1);
+      const b = ~(1 << (d - 1));
+      for (const p of peers[i]) {
+        if (v[p]) { if (v[p] === d) return false; continue; }
+        cd[p] &= b; if (!cd[p]) return false;
+      }
+      return true;
+    }
+    function propagate(v, cd) {
+      let changed = true;
+      while (changed) {
+        changed = false;
+        for (let i = 0; i < C; i++) if (!v[i]) {
+          const m = cd[i];
+          if (!m) return false;
+          if (!(m & (m - 1))) { if (!assign(v, cd, i, lowBit(m) + 1)) return false; changed = true; }
+        }
+        for (const R of regions) {
+          for (let d = 1; d <= R.length; d++) {
+            const bit = 1 << (d - 1); let where = -1, n = 0, placed = false;
+            for (const i of R) { if (v[i] === d) { placed = true; break; } if (!v[i] && (cd[i] & bit)) { n++; where = i; } }
+            if (placed) continue;
+            if (!n) return false;
+            if (n === 1) { if (!assign(v, cd, where, d)) return false; changed = true; }
+          }
+        }
+      }
+      return true;
+    }
+    function rec(v, cd) {
+      if (++nodes > maxNodes) { aborted = true; return; }
+      if (!propagate(v, cd)) return;
+      let best = -1, bc = 9;
+      for (let i = 0; i < C; i++) if (!v[i]) { const k = bitCount(cd[i]); if (k < bc) { bc = k; best = i; if (k === 2) break; } }
+      if (best < 0) { count++; if (!first) first = v.slice(); return; }
+      const ds = []; for (let m = cd[best]; m; m &= m - 1) ds.push(lowBit(m) + 1);
+      if (random) shuffle(ds);
+      for (const d of ds) {
+        const v2 = v.slice(), c2 = cd.slice();
+        if (assign(v2, c2, best, d)) rec(v2, c2);
+        if (count >= limit || aborted) return;
+      }
+    }
+    let ok = true;
+    for (let i = 0; i < C; i++) if (grid[i]) {
+      if (grid[i] > size[i] || !assign(val, cand, i, grid[i])) { ok = false; break; }
+    }
+    if (ok) rec(val, cand);
+    return { count, solution: first, aborted };
+  }
+
+  // --- Логический решатель «как человек»: возвращает следующий шаг ---
+  // level 1: одиночки; level 2: + исключение по общим соседям
+  function candidatesFor(geo, grid) {
+    const { size, peers } = geo, cd = new Array(C);
+    for (let i = 0; i < C; i++) {
+      if (grid[i]) { cd[i] = 1 << (grid[i] - 1); continue; }
+      let m = (1 << size[i]) - 1;
+      for (const p of peers[i]) if (grid[p]) m &= ~(1 << (grid[p] - 1));
+      cd[i] = m;
+    }
+    return cd;
+  }
+  function nextStep(geo, grid, cd, level) {
+    const { regions, size } = geo;
+    // одиночка в клетке
+    for (let i = 0; i < C; i++) if (!grid[i] && cd[i] && !(cd[i] & (cd[i] - 1)))
+      return { type: 'naked', cell: i, value: lowBit(cd[i]) + 1 };
+    // единственное место в области
+    for (const R of regions) for (let d = 1; d <= R.length; d++) {
+      const bit = 1 << (d - 1); let n = 0, w = -1, placed = false;
+      for (const i of R) { if (grid[i] === d) { placed = true; break; } if (!grid[i] && (cd[i] & bit)) { n++; w = i; } }
+      if (!placed && n === 1) return { type: 'hidden', cell: w, value: d };
+    }
+    if (level < 2) return null;
+    // все кандидаты d в области касаются клетки X → в X не может быть d
+    for (const R of regions) for (let d = 1; d <= R.length; d++) {
+      const bit = 1 << (d - 1);
+      if (R.some(i => grid[i] === d)) continue;
+      const spots = R.filter(i => !grid[i] && (cd[i] & bit));
+      if (spots.length < 2) continue;
+      let common = null;
+      for (const s of spots) {
+        const ns = new Set(NB[s]);
+        common = common ? common.filter(x => ns.has(x)) : [...ns];
+      }
+      for (const x of common) if (!grid[x] && geo.reg[x] !== geo.reg[R[0]] && (cd[x] & bit))
+        return { type: 'elim', cell: x, value: d, cells: spots };
+    }
+    return null;
+  }
+  function logicSolve(geo, givens, level) {
+    const grid = givens.slice(), cd = candidatesFor(geo, grid);
+    let steps = 0;
+    for (;;) {
+      const st = nextStep(geo, grid, cd, level);
+      if (!st) break;
+      steps++;
+      if (st.type === 'elim') { cd[st.cell] &= ~(1 << (st.value - 1)); continue; }
+      grid[st.cell] = st.value; cd[st.cell] = 1 << (st.value - 1);
+      for (const p of geo.peers[st.cell]) if (!grid[p]) cd[p] &= ~(1 << (st.value - 1));
+    }
+    return { solved: grid.every(x => x), steps };
+  }
+
+  // --- Генерация ---
+  const LEVELS = {
+    easy:   { logic: 1, keepRatio: 0.38 },
+    medium: { logic: 1, keepRatio: 0 },
+    hard:   { logic: 2, keepRatio: 0, harderThan: 1 },
+  };
+  function generate(difficulty = 'medium') {
+    const cfg = LEVELS[difficulty] || LEVELS.medium;
+    let hardTries = 0;
+    for (let attempt = 0; attempt < 2000; attempt++) {
+      const reg = makeRegions();
+      const geo = buildGeo(reg);
+      const res = solve(geo, new Array(C).fill(0), { limit: 1, random: true, maxNodes: 4000 });
+      if (!res.solution) continue;
+      const sol = res.solution, givens = sol.slice();
+      const minKeep = Math.round(C * cfg.keepRatio);
+      let kept = C;
+      for (const i of shuffle([...Array(C).keys()])) {
+        if (kept <= minKeep) break;
+        const v = givens[i]; givens[i] = 0;
+        const ok = logicSolve(geo, givens, cfg.logic).solved;
+        if (ok) kept--; else givens[i] = v;
+      }
+      // «сложная» должна требовать приём посложнее одиночек
+      if (cfg.harderThan && logicSolve(geo, givens, cfg.harderThan).solved && ++hardTries < 25) continue;
+      return { reg, givens, solution: sol, difficulty };
+    }
+    throw new Error('Не удалось сгенерировать головоломку');
+  }
+
+  return { N, C, NB, buildGeo, solve, generate, candidatesFor, nextStep, logicSolve };
+})();
+
+// ===== Условие получения подсказки =====
+// ЗАГЛУШКА. Сюда встанет условие, которое выберет Руслан.
+// request() должен вернуть true, если подсказку можно выдать.
+const HintGate = {
+  title: 'Подсказка',
+  text: 'Скоро здесь появится особое условие, чтобы получить подсказку. Пока что подсказки бесплатные.',
+  async request() { return true; },
+};
+
+// ===== Игра =====
+const $ = id => document.getElementById(id);
+const KEY = 'suguru-dalya-v1';
+const LVL_NAME = { easy: 'Лёгкая', medium: 'Средняя', hard: 'Сложная' };
+const PRAISE = ['Даля, ты умница!', 'Блестяще, Даля!', 'Ещё одна покорена!', 'Вот это голова!', 'Красиво решено!'];
+
+let S = null;      // текущая партия
+let geo = null;    // геометрия областей
+let stats = { solved: { easy: 0, medium: 0, hard: 0 }, best: {} };
+let level = 'medium';
+let cells = [];
+
+function load() {
+  try {
+    const d = JSON.parse(localStorage.getItem(KEY) || 'null');
+    if (d) { stats = d.stats || stats; level = d.level || level; if (d.game && d.game.p) S = d.game; }
+  } catch (e) {}
+}
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify({ stats, level, game: S })); } catch (e) {}
+}
+
+function newGame(lvl = level) {
+  level = lvl;
+  $('loading').hidden = false;
+  setTimeout(() => {
+    const p = Suguru.generate(lvl);
+    S = { p, vals: p.givens.slice(), notes: new Array(81).fill(0), elapsed: 0, hints: 0, done: false, sel: -1, history: [] };
+    $('loading').hidden = true;
+    setup(); save();
+  }, 30);
+}
+
+function setup() {
+  geo = Suguru.buildGeo(S.p.reg);
+  const board = $('board');
+  board.innerHTML = '';
+  cells = [];
+  for (let i = 0; i < 81; i++) {
+    const d = document.createElement('div');
+    d.className = 'cell';
+    d.addEventListener('pointerdown', e => { e.preventDefault(); select(i); });
+    board.appendChild(d); cells.push(d);
+  }
+  board.appendChild(drawLines());
+  document.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.lvl === S.p.difficulty)));
+  render();
+}
+
+function drawLines() {
+  const ns = 'http://www.w3.org/2000/svg', reg = S.p.reg;
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('viewBox', '0 0 9 9'); svg.setAttribute('class', 'lines'); svg.setAttribute('preserveAspectRatio', 'none');
+  const line = (x1, y1, x2, y2, cls) => {
+    const l = document.createElementNS(ns, 'line');
+    l.setAttribute('x1', x1); l.setAttribute('y1', y1); l.setAttribute('x2', x2); l.setAttribute('y2', y2);
+    l.setAttribute('class', cls); return l;
+  };
+  const thick = [];
+  for (let r = 0; r < 9; r++) for (let c = 0; c < 9; c++) {
+    const i = r * 9 + c;
+    if (c < 8) { const t = reg[i] !== reg[i + 1];
+      const l = line(c + 1, r, c + 1, r + 1, t ? 'thick' : 'thin'); (t ? thick.push(l) : svg.appendChild(l)); }
+    if (r < 8) { const t = reg[i] !== reg[i + 9];
+      const l = line(c, r + 1, c + 1, r + 1, t ? 'thick' : 'thin'); (t ? thick.push(l) : svg.appendChild(l)); }
+  }
+  thick.forEach(l => svg.appendChild(l));
+  const f = document.createElementNS(ns, 'rect');
+  f.setAttribute('x', 0); f.setAttribute('y', 0); f.setAttribute('width', 9); f.setAttribute('height', 9); f.setAttribute('class', 'frame');
+  svg.appendChild(f);
+  return svg;
+}
+
+function conflicts() {
+  const bad = new Set();
+  for (let i = 0; i < 81; i++) {
+    const v = S.vals[i]; if (!v) continue;
+    for (const p of geo.peers[i]) if (S.vals[p] === v) { bad.add(i); bad.add(p); }
+  }
+  return bad;
+}
+
+function render() {
+  const bad = conflicts(), sel = S.sel, selVal = sel >= 0 ? S.vals[sel] : 0;
+  for (let i = 0; i < 81; i++) {
+    const d = cells[i], v = S.vals[i];
+    d.classList.toggle('given', !!S.p.givens[i]);
+    d.classList.toggle('sel', i === sel);
+    d.classList.toggle('area', sel >= 0 && i !== sel && S.p.reg[i] === S.p.reg[sel]);
+    d.classList.toggle('same', sel >= 0 && i !== sel && !!selVal && v === selVal);
+    d.classList.toggle('bad', bad.has(i) && !S.p.givens[i]);
+    if (v) d.textContent = v;
+    else if (S.notes[i]) {
+      let h = '<div class="notes">';
+      for (let k = 1; k <= 5; k++) h += `<span>${S.notes[i] & (1 << (k - 1)) ? k : ''}</span>`;
+      d.innerHTML = h + '</div>';
+    } else d.textContent = '';
+  }
+  // цифры, которые подходят по размеру области
+  const max = sel >= 0 ? geo.size[sel] : 5;
+  const locked = sel < 0 || !!S.p.givens[sel] || S.done;
+  document.querySelectorAll('#pad button').forEach((b, k) => { b.disabled = locked || k + 1 > max; });
+  $('pad').classList.toggle('noting', notesMode);
+  $('hintsUsed').textContent = S.hints;
+  $('solved').textContent = stats.solved.easy + stats.solved.medium + stats.solved.hard;
+  $('timer').textContent = fmt(S.elapsed);
+}
+
+const fmt = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+
+function select(i) { S.sel = i; render(); }
+
+function snapshot() {
+  S.history.push([S.vals.slice(), S.notes.slice()]);
+  if (S.history.length > 300) S.history.shift();
+}
+
+let notesMode = false;
+function input(n) {
+  const i = S.sel;
+  if (i < 0 || S.done || S.p.givens[i] || n > geo.size[i]) return;
+  snapshot();
+  if (notesMode && !S.vals[i]) {
+    S.notes[i] ^= 1 << (n - 1);
+  } else {
+    S.vals[i] = S.vals[i] === n ? 0 : n;
+    if (S.vals[i]) for (const p of geo.peers[i]) S.notes[p] &= ~(1 << (n - 1));
+  }
+  afterMove();
+}
+function erase() {
+  const i = S.sel;
+  if (i < 0 || S.done || S.p.givens[i] || (!S.vals[i] && !S.notes[i])) return;
+  snapshot(); S.vals[i] = 0; S.notes[i] = 0; afterMove();
+}
+function undo() {
+  if (S.done || !S.history.length) return;
+  [S.vals, S.notes] = S.history.pop(); afterMove();
+}
+function afterMove() {
+  render(); save();
+  if (S.vals.every((v, i) => v === S.p.solution[i])) win();
+}
+
+// ===== Подсказки =====
+async function askHint() {
+  if (S.done) return;
+  const go = await sheet({ title: HintGate.title, body: `<p>${HintGate.text}</p>`, ok: 'Получить подсказку', cancel: 'Сама справлюсь' });
+  if (!go || !(await HintGate.request())) return;
+  S.hints++; save(); render();
+  showHint();
+}
+
+function showHint() {
+  const sol = S.p.solution;
+  // сначала ошибки
+  const wrong = S.vals.findIndex((v, i) => v && v !== sol[i]);
+  if (wrong >= 0) {
+    flash(wrong);
+    sheet({ title: 'Тут закралась ошибка', body: '<p>В выделенной клетке стоит неверное число. Если его убрать, дальше пойдёт легче.</p>', ok: 'Стереть', cancel: 'Оставить' })
+      .then(ok => { if (ok) { snapshot(); S.vals[wrong] = 0; afterMove(); } });
+    return;
+  }
+  const grid = S.vals.slice(), cd = Suguru.candidatesFor(geo, grid);
+  let step = null, usedElim = false;
+  for (let guard = 0; guard < 400; guard++) {
+    const st = Suguru.nextStep(geo, grid, cd, 2);
+    if (!st) break;
+    if (st.type === 'elim') { cd[st.cell] &= ~(1 << (st.value - 1)); usedElim = true; continue; }
+    step = st; break;
+  }
+  let i, v, text;
+  if (step) {
+    i = step.cell; v = step.value;
+    const n = geo.size[i];
+    if (step.type === 'naked' && !usedElim) {
+      const others = []; for (let k = 1; k <= n; k++) if (k !== v) others.push(k);
+      text = n === 1
+        ? 'Эта клетка сама по себе область, значит тут 1.'
+        : `Область из ${n} клеток, значит здесь может быть только 1–${n}. ${others.length > 1 ? 'Числа ' + others.join(', ') + ' уже' : 'Число ' + others[0] + ' уже'} стоят в этой области или касаются клетки. Остаётся ${v}.`;
+    } else if (step.type === 'hidden' && !usedElim) {
+      text = `Посмотри на выделенную область: число ${v} в ней больше никуда не встаёт. В остальных свободных клетках оно касалось бы такой же ${v}.`;
+    } else {
+      text = `Здесь ${v}. Чтобы это увидеть, посмотри на соседние области: если все места для какого-то числа в области касаются одной клетки, в этой клетке такого числа быть не может.`;
+    }
+  } else {
+    const empty = []; for (let k = 0; k < 81; k++) if (!S.vals[k]) empty.push(k);
+    i = empty[Math.random() * empty.length | 0]; v = sol[i];
+    text = `Здесь стоит ${v}.`;
+  }
+  S.sel = i; render(); flash(i);
+  sheet({ title: 'Подсказка', body: `<p>${text}</p>`, ok: `Поставить ${v}`, cancel: 'Дальше сама' })
+    .then(ok => { if (ok && !S.done) { snapshot(); S.vals[i] = v; afterMove(); } });
+}
+
+function flash(i) {
+  const d = cells[i]; d.classList.remove('hint'); void d.offsetWidth; d.classList.add('hint');
+  setTimeout(() => d.classList.remove('hint'), 3800);
+}
+
+// ===== Шторка =====
+function sheet({ title, body, ok, cancel, cls = '' }) {
+  return new Promise(resolve => {
+    const root = $('sheetRoot');
+    root.innerHTML = `<div class="sheet-back"><div class="sheet ${cls}" role="dialog" aria-modal="true">
+      <h2>${title}</h2>${body}
+      <div class="actions">${cancel ? `<button id="sheetCancel">${cancel}</button>` : ''}<button class="primary" id="sheetOk">${ok}</button></div>
+    </div></div>`;
+    const close = v => { root.innerHTML = ''; resolve(v); };
+    $('sheetOk').onclick = () => close(true);
+    if (cancel) $('sheetCancel').onclick = () => close(false);
+    root.querySelector('.sheet-back').addEventListener('pointerdown', e => { if (e.target.classList.contains('sheet-back')) close(false); });
+    $('sheetOk').focus({ preventScroll: true });
+  });
+}
+
+function rules() {
+  const ex = (cellsSvg) => `<svg viewBox="0 0 64 64">${cellsSvg}</svg>`;
+  const box = (x, y, t, c) => `<rect x="${x}" y="${y}" width="20" height="20" fill="var(--area)" stroke="var(--line)" stroke-width="1"/>
+    <text x="${x + 10}" y="${y + 15}" text-anchor="middle" font-size="13" font-family="Unbounded, sans-serif" fill="${c || 'var(--ink)'}">${t}</text>`;
+  sheet({
+    title: 'Как играть',
+    body: `
+      <div class="rule">${ex(box(12, 12, 1) + box(32, 12, 3) + box(12, 32, 4) + box(32, 32, 2) + '<rect x="12" y="12" width="40" height="40" fill="none" stroke="var(--ink)" stroke-width="2.5"/>')}
+        <p>Поле разбито на области. В области из N клеток стоят числа от 1 до N, каждое по одному разу.</p></div>
+      <div class="rule">${ex(box(12, 12, 2, 'var(--error)') + box(32, 32, 2, 'var(--error)') + box(32, 12, 1) + box(12, 32, 3))}
+        <p>Одинаковые числа не могут касаться друг друга, даже уголком.</p></div>
+      <p class="muted">Нажми на клетку, потом на цифру. В режиме «Заметки» можно ставить маленькие пометки. Клетки, которые нарушают правила, подсвечиваются красным.</p>`,
+    ok: 'Понятно',
+  });
+}
+
+function win() {
+  S.done = true;
+  stats.solved[S.p.difficulty] = (stats.solved[S.p.difficulty] || 0) + 1;
+  const best = stats.best[S.p.difficulty];
+  const record = !S.hints && (!best || S.elapsed < best);
+  if (record) stats.best[S.p.difficulty] = S.elapsed;
+  save(); render(); hearts();
+  sheet({
+    cls: 'win',
+    title: PRAISE[Math.random() * PRAISE.length | 0],
+    body: `<div class="stats">
+      <div><span>Время</span><b>${fmt(S.elapsed)}</b></div>
+      <div><span>Уровень</span><b>${LVL_NAME[S.p.difficulty]}</b></div>
+      <div><span>Подсказок</span><b>${S.hints}</b></div></div>
+      ${record ? '<p class="muted">Новый рекорд без подсказок на этом уровне.</p>' : ''}`,
+    ok: 'Ещё одну', cancel: 'Полюбоваться',
+  }).then(ok => { if (ok) newGame(S.p.difficulty); });
+}
+
+function hearts() {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const cv = document.createElement('canvas'); cv.className = 'hearts'; document.body.appendChild(cv);
+  const dpr = devicePixelRatio || 1, W = innerWidth, H = innerHeight;
+  cv.width = W * dpr; cv.height = H * dpr;
+  const ctx = cv.getContext('2d'); ctx.scale(dpr, dpr);
+  const color = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#d6457a';
+  const ps = Array.from({ length: 36 }, () => ({ x: Math.random() * W, y: H + Math.random() * H * .4, s: 8 + Math.random() * 14, v: 2 + Math.random() * 3, w: Math.random() * 6, a: 1 }));
+  let t = 0;
+  (function frame() {
+    ctx.clearRect(0, 0, W, H); t++;
+    for (const p of ps) {
+      p.y -= p.v; p.x += Math.sin((t + p.w * 20) / 18) * .8; if (p.y < H * .25) p.a -= .02;
+      ctx.globalAlpha = Math.max(0, p.a); ctx.fillStyle = color;
+      ctx.beginPath(); const s = p.s;
+      ctx.moveTo(p.x, p.y + s * .3);
+      ctx.bezierCurveTo(p.x, p.y, p.x - s / 2, p.y, p.x - s / 2, p.y + s * .3);
+      ctx.bezierCurveTo(p.x - s / 2, p.y + s * .6, p.x, p.y + s * .75, p.x, p.y + s);
+      ctx.bezierCurveTo(p.x, p.y + s * .75, p.x + s / 2, p.y + s * .6, p.x + s / 2, p.y + s * .3);
+      ctx.bezierCurveTo(p.x + s / 2, p.y, p.x, p.y, p.x, p.y + s * .3);
+      ctx.fill();
+    }
+    if (t < 220) requestAnimationFrame(frame); else cv.remove();
+  })();
+}
+
+// ===== Запуск =====
+function init() {
+  const pad = $('pad');
+  for (let k = 1; k <= 5; k++) {
+    const b = document.createElement('button'); b.textContent = k; b.id = 'pad' + k;
+    b.addEventListener('click', () => input(k)); pad.appendChild(b);
+  }
+  document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => {
+    if (b.dataset.lvl === S.p.difficulty && !S.done) return;
+    const started = !S.done && S.vals.some((v, i) => v && !S.p.givens[i]);
+    if (!started) return newGame(b.dataset.lvl);
+    sheet({ title: 'Начать новую?', body: `<p>Текущая партия не решена. Начать новую, уровень «${LVL_NAME[b.dataset.lvl]}»?</p>`, ok: 'Начать', cancel: 'Остаться' })
+      .then(ok => ok && newGame(b.dataset.lvl));
+  }));
+  $('newBtn').onclick = () => {
+    const started = !S.done && S.vals.some((v, i) => v && !S.p.givens[i]);
+    if (!started) return newGame(S.p.difficulty);
+    sheet({ title: 'Начать новую?', body: '<p>Текущая партия не решена, прогресс пропадёт.</p>', ok: 'Начать', cancel: 'Остаться' })
+      .then(ok => ok && newGame(S.p.difficulty));
+  };
+  $('undoBtn').onclick = undo;
+  $('eraseBtn').onclick = erase;
+  $('notesBtn').onclick = () => { notesMode = !notesMode; $('notesBtn').setAttribute('aria-pressed', String(notesMode)); render(); };
+  $('hintBtn').onclick = askHint;
+  $('rulesBtn').onclick = rules;
+  document.addEventListener('keydown', e => {
+    if ($('sheetRoot').innerHTML) return;
+    if (e.key >= '1' && e.key <= '5') input(+e.key);
+    else if (e.key === 'Backspace' || e.key === 'Delete' || e.key === '0') erase();
+    else if (e.key === 'n' || e.key === 'т') $('notesBtn').click();
+    else if ((e.metaKey || e.ctrlKey) && e.key === 'z') undo();
+    else if (e.key.startsWith('Arrow')) {
+      const i = S.sel < 0 ? 40 : S.sel, r = (i / 9) | 0, c = i % 9;
+      const [dr, dc] = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] }[e.key];
+      select(((r + dr + 9) % 9) * 9 + (c + dc + 9) % 9); e.preventDefault();
+    }
+  });
+  setInterval(() => {
+    if (S && !S.done && !document.hidden && $('loading').hidden) { S.elapsed++; $('timer').textContent = fmt(S.elapsed); if (S.elapsed % 10 === 0) save(); }
+  }, 1000);
+  load();
+  if (S) { S.sel = -1; setup(); } else newGame(level);
+  try { if (!localStorage.getItem(KEY + '-seen')) { localStorage.setItem(KEY + '-seen', '1'); rules(); } } catch (e) {}
+}
+init();
+
+if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>

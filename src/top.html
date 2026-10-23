@@ -1,0 +1,173 @@
+<title>Сугуру для Дали</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Сугуру">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;500;700&family=Manrope:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: одноэкранное приложение, сверху шапка, по центру поле, снизу цифры и инструменты */
+:root {
+  --paper: #f1eff8;
+  --surface: #ffffff;
+  --ink: #1f1b3a;
+  --muted: #6c6789;
+  --line: #d6d1e8;
+  --accent: #d6457a;
+  --accent-soft: #fae1ea;
+  --user: #5b45d1;
+  --error: #d1343f;
+  --sel: #e4ddff;
+  --area: #f4f1ff;
+  --same: #efe9ff;
+  --shadow: 0 1px 2px rgba(31,27,58,.08), 0 8px 24px rgba(31,27,58,.08);
+  --f-display: "Unbounded", "Avenir Next", system-ui, sans-serif;
+  --f-body: "Manrope", -apple-system, "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #14122a; --surface: #1d1a37; --ink: #ece9fc; --muted: #9a94bd; --line: #38335c;
+  --accent: #ff7aa6; --accent-soft: #46203a; --user: #ab9dff; --error: #ff6b74;
+  --sel: #3a3270; --area: #232046; --same: #2c2758;
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
+  color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --paper: #14122a; --surface: #1d1a37; --ink: #ece9fc; --muted: #9a94bd; --line: #38335c;
+  --accent: #ff7aa6; --accent-soft: #46203a; --user: #ab9dff; --error: #ff6b74;
+  --sel: #3a3270; --area: #232046; --same: #2c2758;
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body {
+  background: var(--paper); color: var(--ink); font-family: var(--f-body); font-size: 15px;
+  -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none;
+  touch-action: manipulation; overscroll-behavior: none;
+}
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.app {
+  max-width: 480px; margin: 0 auto; min-height: 100%; display: flex; flex-direction: column; gap: 14px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 12px 16px;
+}
+header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.brand { display: flex; flex-direction: column; line-height: 1.1; }
+.brand h1 { font-family: var(--f-display); font-weight: 700; font-size: 26px; letter-spacing: -.02em; margin: 0; }
+.brand h1 span { color: var(--accent); }
+.brand small { color: var(--muted); font-size: 12px; letter-spacing: .04em; margin-top: 3px; }
+.icon-btn {
+  width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface);
+  display: grid; place-items: center; font-weight: 700; font-size: 17px;
+}
+.bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.seg { display: flex; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 3px; flex: 1; min-width: 0; }
+.seg button { flex: 1; border: 0; background: transparent; padding: 8px 4px; border-radius: 9px; font-weight: 600; font-size: 13px; color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.new-btn { border: 0; background: var(--accent); color: #fff; font-weight: 700; padding: 10px 14px; border-radius: 12px; font-size: 13px; }
+.status { display: flex; justify-content: space-between; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.status b { color: var(--ink); font-weight: 600; }
+
+.board-wrap { position: relative; width: min(100%, calc(100svh - 330px)); min-width: min(100%, 300px); margin: 0 auto; }
+.board {
+  position: relative; aspect-ratio: 1; max-width: 100%; background: var(--surface); border-radius: 10px;
+  box-shadow: var(--shadow); display: grid; grid-template-columns: repeat(9, 1fr); grid-template-rows: repeat(9, 1fr); overflow: hidden;
+}
+.cell { position: relative; display: grid; place-items: center; font-family: var(--f-display); font-size: clamp(16px, 5.4vw, 26px); font-weight: 500; color: var(--user); }
+.cell.given { color: var(--ink); font-weight: 700; }
+.cell.area { background: var(--area); }
+.cell.same { background: var(--same); }
+.cell.sel { background: var(--sel); }
+.cell.bad { color: var(--error); }
+.cell.bad::after { content: ""; position: absolute; inset: 18%; border-radius: 50%; background: var(--error); opacity: .13; }
+.cell.hint { animation: pulse 1.2s ease-in-out 3; background: var(--accent-soft); }
+@keyframes pulse { 50% { box-shadow: inset 0 0 0 3px var(--accent); } }
+.notes { position: absolute; inset: 3px; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr);
+  font-family: var(--f-body); font-weight: 600; font-size: clamp(8px, 2.3vw, 11px); color: var(--muted); line-height: 1; }
+.notes span { display: grid; place-items: center; }
+svg.lines { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+svg.lines .thin { stroke: var(--line); stroke-width: .03; }
+svg.lines .thick { stroke: var(--ink); stroke-width: .075; stroke-linecap: round; }
+svg.lines .frame { fill: none; stroke: var(--ink); stroke-width: .15; }
+.loading { position: absolute; inset: 0; display: grid; place-items: center; background: var(--surface); border-radius: 10px;
+  color: var(--muted); font-weight: 600; z-index: 2; }
+
+.pad { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+.pad button {
+  border: 1px solid var(--line); background: var(--surface); border-radius: 14px; height: 58px;
+  font-family: var(--f-display); font-size: 24px; font-weight: 500; color: var(--user); box-shadow: var(--shadow);
+  transition: transform .08s;
+}
+.pad button:active { transform: scale(.94); }
+.pad button:disabled { opacity: .3; box-shadow: none; }
+.pad.noting button { color: var(--muted); font-size: 18px; border-style: dashed; }
+.tools { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.tools button { border: 0; background: transparent; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 0; font-size: 12px; font-weight: 600; color: var(--muted); }
+.tools svg { width: 24px; height: 24px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.tools button[aria-pressed="true"] { color: var(--user); }
+.tools .hint-btn { color: var(--accent); }
+.tools .hint-btn em { font-style: normal; font-size: 11px; background: var(--accent-soft); border-radius: 99px; padding: 0 7px; }
+
+.sheet-back { position: fixed; inset: 0; background: rgba(20,18,42,.45); display: flex; align-items: flex-end; justify-content: center; z-index: 20; }
+.sheet {
+  width: 100%; max-width: 480px; background: var(--surface); border-radius: 22px 22px 0 0; box-shadow: var(--shadow);
+  padding: 22px max(20px, env(safe-area-inset-right, 0px)) calc(20px + env(safe-area-inset-bottom, 0px)) max(20px, env(safe-area-inset-left, 0px));
+  display: flex; flex-direction: column; gap: 12px; animation: up .22s ease-out;
+}
+@keyframes up { from { transform: translateY(30px); opacity: 0; } }
+.sheet h2 { font-family: var(--f-display); font-weight: 700; font-size: 20px; margin: 0; text-wrap: balance; }
+.sheet p { margin: 0; line-height: 1.5; color: var(--ink); }
+.sheet .muted { color: var(--muted); font-size: 13px; }
+.sheet .actions { display: flex; gap: 8px; margin-top: 6px; }
+.sheet .actions button { flex: 1; border: 1px solid var(--line); background: var(--surface); padding: 13px; border-radius: 14px; font-weight: 700; }
+.sheet .actions button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.rule { display: grid; grid-template-columns: 64px 1fr; gap: 12px; align-items: center; }
+.rule svg { width: 64px; height: 64px; }
+.win h2 { font-size: 26px; }
+.win .stats { display: flex; gap: 18px; font-variant-numeric: tabular-nums; }
+.win .stats div { display: flex; flex-direction: column; }
+.win .stats span { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
+.win .stats b { font-family: var(--f-display); font-size: 22px; font-weight: 500; }
+canvas.hearts { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 30; }
+@media (prefers-reduced-motion: reduce) { .cell.hint, .sheet { animation: none; } .pad button { transition: none; } }
+@media (max-height: 640px) { .pad button { height: 48px; } .app { gap: 10px; } }
+</style>
+
+<div class="app">
+  <header>
+    <div class="brand">
+      <h1>Сугуру<span>.</span></h1>
+      <small>головоломки для Дали</small>
+    </div>
+    <button class="icon-btn" id="rulesBtn" aria-label="Правила">?</button>
+  </header>
+
+  <div class="bar">
+    <div class="seg" role="group" aria-label="Сложность">
+      <button id="lvl-easy" data-lvl="easy" aria-pressed="false">Лёгкая</button>
+      <button id="lvl-medium" data-lvl="medium" aria-pressed="true">Средняя</button>
+      <button id="lvl-hard" data-lvl="hard" aria-pressed="false">Сложная</button>
+    </div>
+    <button class="new-btn" id="newBtn">Новая</button>
+  </div>
+
+  <div class="status">
+    <div>Время <b id="timer">0:00</b></div>
+    <div>Решено <b id="solved">0</b></div>
+    <div>Подсказок <b id="hintsUsed">0</b></div>
+  </div>
+
+  <div class="board-wrap">
+    <div class="board" id="board" aria-label="Поле 9 на 9"></div>
+    <div class="loading" id="loading" hidden>Рисую новое поле…</div>
+  </div>
+
+  <div class="pad" id="pad"></div>
+
+  <div class="tools">
+    <button id="undoBtn"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>Отменить</button>
+    <button id="eraseBtn"><svg viewBox="0 0 24 24"><path d="m7 21-4.3-4.3a1 1 0 0 1 0-1.4l10-10a1 1 0 0 1 1.4 0l5.6 5.6a1 1 0 0 1 0 1.4L11 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg>Стереть</button>
+    <button id="notesBtn" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Заметки</button>
+    <button id="hintBtn" class="hint-btn"><svg viewBox="0 0 24 24"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0 0 12 2Z"/></svg>Подсказка</button>
+  </div>
+</div>
+<div id="sheetRoot"></div>
