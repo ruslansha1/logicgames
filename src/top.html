@@ -169,6 +169,26 @@ canvas.hearts { position: fixed; inset: 0; width: 100%; height: 100%; pointer-ev
 .pad.sd button { height: 48px; font-size: 21px; letter-spacing: -.03em; }
 .pad.sd.noting button { font-size: 16px; }
 .pad.sd button.full:not(:disabled) { opacity: .4; box-shadow: none; }
+/* Киллер-судоку */
+.game-ico.killer { background: var(--area); }
+.game-ico.killer::before { content: ""; position: absolute; inset: 7px; border: 1.5px dashed var(--ink); border-radius: 3px; }
+.game-ico.killer::after { content: "15"; position: absolute; left: 4px; top: 3px; padding: 0 2px; background: var(--area); font: 700 10px/1.1 var(--f-body); color: var(--accent); }
+.board-wrap.ks { width: min(100%, calc(100svh - 318px)); }
+.board.ks .cell { font-size: clamp(15px, 5vw, 24px); }
+.board.ks .val { position: absolute; inset: 0; display: grid; place-items: center; padding-top: 12%; }
+.board.ks .notes { inset: 26% 6% 4% 8%; grid-template-rows: repeat(3, 1fr); font-size: clamp(7px, 2.1vw, 10px); }
+.cage-sum { position: absolute; z-index: 1; left: 5%; top: 3%; padding: 0 1px; border-radius: 2px; background: var(--lbl, var(--surface));
+  font-family: var(--f-body); font-weight: 700; font-size: clamp(8px, 2.5vw, 11px); line-height: 1.05; color: var(--ink); letter-spacing: -.02em; }
+.cage-sum.bad { color: var(--error); }
+.board.ks .cell.sel { --lbl: var(--sel); }
+.board.ks .cell.same { --lbl: var(--same); }
+.board.ks .cell.hint { --lbl: var(--accent-soft); }
+svg.lines .dash { stroke: var(--ink); stroke-width: .028; stroke-dasharray: .09 .07; opacity: .75; }
+svg.lines .cage.on .dash { stroke: var(--accent); stroke-width: .05; opacity: 1; }
+.pad.ks { grid-template-columns: repeat(9, 1fr); gap: 5px; }
+.pad.ks button { height: 54px; font-size: 22px; border-radius: 12px; padding: 0; }
+.pad.ks.noting button { font-size: 16px; }
+.pad.ks button.full:not(:disabled) { opacity: .4; box-shadow: none; }
 /* Профиль */
 .avatar-btn { width: 40px; height: 40px; border-radius: 50%; border: 0; background: transparent; padding: 0; display: grid; place-items: center; position: relative; }
 .avatar-btn.dot::after { content: ""; position: absolute; top: 0; right: 0; width: 11px; height: 11px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--paper); animation: blink 1.6s ease-in-out infinite; }
@@ -364,7 +384,7 @@ canvas.hearts { position: fixed; inset: 0; width: 100%; height: 100%; pointer-ev
 .ach-toast-txt em { font-style: normal; font-size: 12px; opacity: .8; line-height: 1.3; }
 @media (max-width: 360px) { .badges { gap: 6px; } .badge-medal { width: 50px; height: 50px; } .pf-stats b { font-size: 16px; } .brand h1 { font-size: 22px; } .games-btn { padding: 0 9px 0 8px; } }
 @media (prefers-reduced-motion: reduce) { .cell.hint, .sheet, .badge.new .badge-medal, .ach-toast-medal, .ach-toast-medal i, .ach-detail .ach-big::before, .pf-showcase::before, .avatar-btn.dot::after { animation: none !important; } .pad button, .ach-toast { transition: none; } }
-@media (max-height: 640px) { .pad button { height: 48px; } .pad.sd button { height: 42px; } .app, .screen { gap: 10px; } }
+@media (max-height: 640px) { .pad button { height: 48px; } .pad.sd button { height: 42px; } .pad.ks button { height: 46px; } .app, .screen { gap: 10px; } }
 </style>
 
 <div class="app">
@@ -439,6 +459,36 @@ canvas.hearts { position: fixed; inset: 0; width: 100%; height: 100%; pointer-ev
       <button id="sdEraseBtn"><svg viewBox="0 0 24 24"><path d="m7 21-4.3-4.3a1 1 0 0 1 0-1.4l10-10a1 1 0 0 1 1.4 0l5.6 5.6a1 1 0 0 1 0 1.4L11 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg>Стереть</button>
       <button id="sdNotesBtn" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Заметки</button>
       <button id="sdHintBtn" class="hint-btn"><svg viewBox="0 0 24 24"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0 0 12 2Z"/></svg>Подсказка</button>
+    </div>
+  </section>
+  <section class="screen" id="screen-killer" hidden>
+    <div class="bar">
+      <div class="seg" role="group" aria-label="Сложность">
+        <button data-lvl="easy" aria-pressed="false">Лёгкая</button>
+        <button data-lvl="medium" aria-pressed="true">Средняя</button>
+        <button data-lvl="hard" aria-pressed="false">Сложная</button>
+      </div>
+      <button class="new-btn" id="ksNewBtn">Новая</button>
+    </div>
+
+    <div class="status">
+      <div>Время <b id="ksTimer">0:00</b></div>
+      <div>Решено <b id="ksSolved">0</b></div>
+      <div>Подсказок <b id="ksHints">0</b></div>
+    </div>
+
+    <div class="board-wrap ks">
+      <div class="board ks" id="ksBoard" aria-label="Поле 9 на 9"></div>
+      <div class="loading" id="ksLoading" hidden>Рисую новое поле…</div>
+    </div>
+
+    <div class="pad ks" id="ksPad"></div>
+
+    <div class="tools">
+      <button id="ksUndoBtn"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>Отменить</button>
+      <button id="ksEraseBtn"><svg viewBox="0 0 24 24"><path d="m7 21-4.3-4.3a1 1 0 0 1 0-1.4l10-10a1 1 0 0 1 1.4 0l5.6 5.6a1 1 0 0 1 0 1.4L11 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg>Стереть</button>
+      <button id="ksNotesBtn" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Заметки</button>
+      <button id="ksHintBtn" class="hint-btn"><svg viewBox="0 0 24 24"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0 0 12 2Z"/></svg>Подсказка</button>
     </div>
   </section>
 </div>

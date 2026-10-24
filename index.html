@@ -184,6 +184,26 @@ canvas.hearts { position: fixed; inset: 0; width: 100%; height: 100%; pointer-ev
 .pad.sd button { height: 48px; font-size: 21px; letter-spacing: -.03em; }
 .pad.sd.noting button { font-size: 16px; }
 .pad.sd button.full:not(:disabled) { opacity: .4; box-shadow: none; }
+/* Киллер-судоку */
+.game-ico.killer { background: var(--area); }
+.game-ico.killer::before { content: ""; position: absolute; inset: 7px; border: 1.5px dashed var(--ink); border-radius: 3px; }
+.game-ico.killer::after { content: "15"; position: absolute; left: 4px; top: 3px; padding: 0 2px; background: var(--area); font: 700 10px/1.1 var(--f-body); color: var(--accent); }
+.board-wrap.ks { width: min(100%, calc(100svh - 318px)); }
+.board.ks .cell { font-size: clamp(15px, 5vw, 24px); }
+.board.ks .val { position: absolute; inset: 0; display: grid; place-items: center; padding-top: 12%; }
+.board.ks .notes { inset: 26% 6% 4% 8%; grid-template-rows: repeat(3, 1fr); font-size: clamp(7px, 2.1vw, 10px); }
+.cage-sum { position: absolute; z-index: 1; left: 5%; top: 3%; padding: 0 1px; border-radius: 2px; background: var(--lbl, var(--surface));
+  font-family: var(--f-body); font-weight: 700; font-size: clamp(8px, 2.5vw, 11px); line-height: 1.05; color: var(--ink); letter-spacing: -.02em; }
+.cage-sum.bad { color: var(--error); }
+.board.ks .cell.sel { --lbl: var(--sel); }
+.board.ks .cell.same { --lbl: var(--same); }
+.board.ks .cell.hint { --lbl: var(--accent-soft); }
+svg.lines .dash { stroke: var(--ink); stroke-width: .028; stroke-dasharray: .09 .07; opacity: .75; }
+svg.lines .cage.on .dash { stroke: var(--accent); stroke-width: .05; opacity: 1; }
+.pad.ks { grid-template-columns: repeat(9, 1fr); gap: 5px; }
+.pad.ks button { height: 54px; font-size: 22px; border-radius: 12px; padding: 0; }
+.pad.ks.noting button { font-size: 16px; }
+.pad.ks button.full:not(:disabled) { opacity: .4; box-shadow: none; }
 /* Профиль */
 .avatar-btn { width: 40px; height: 40px; border-radius: 50%; border: 0; background: transparent; padding: 0; display: grid; place-items: center; position: relative; }
 .avatar-btn.dot::after { content: ""; position: absolute; top: 0; right: 0; width: 11px; height: 11px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--paper); animation: blink 1.6s ease-in-out infinite; }
@@ -379,7 +399,7 @@ canvas.hearts { position: fixed; inset: 0; width: 100%; height: 100%; pointer-ev
 .ach-toast-txt em { font-style: normal; font-size: 12px; opacity: .8; line-height: 1.3; }
 @media (max-width: 360px) { .badges { gap: 6px; } .badge-medal { width: 50px; height: 50px; } .pf-stats b { font-size: 16px; } .brand h1 { font-size: 22px; } .games-btn { padding: 0 9px 0 8px; } }
 @media (prefers-reduced-motion: reduce) { .cell.hint, .sheet, .badge.new .badge-medal, .ach-toast-medal, .ach-toast-medal i, .ach-detail .ach-big::before, .pf-showcase::before, .avatar-btn.dot::after { animation: none !important; } .pad button, .ach-toast { transition: none; } }
-@media (max-height: 640px) { .pad button { height: 48px; } .pad.sd button { height: 42px; } .app, .screen { gap: 10px; } }
+@media (max-height: 640px) { .pad button { height: 48px; } .pad.sd button { height: 42px; } .pad.ks button { height: 46px; } .app, .screen { gap: 10px; } }
 </style>
 </head>
 <body>
@@ -455,6 +475,36 @@ canvas.hearts { position: fixed; inset: 0; width: 100%; height: 100%; pointer-ev
       <button id="sdEraseBtn"><svg viewBox="0 0 24 24"><path d="m7 21-4.3-4.3a1 1 0 0 1 0-1.4l10-10a1 1 0 0 1 1.4 0l5.6 5.6a1 1 0 0 1 0 1.4L11 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg>Стереть</button>
       <button id="sdNotesBtn" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Заметки</button>
       <button id="sdHintBtn" class="hint-btn"><svg viewBox="0 0 24 24"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0 0 12 2Z"/></svg>Подсказка</button>
+    </div>
+  </section>
+  <section class="screen" id="screen-killer" hidden>
+    <div class="bar">
+      <div class="seg" role="group" aria-label="Сложность">
+        <button data-lvl="easy" aria-pressed="false">Лёгкая</button>
+        <button data-lvl="medium" aria-pressed="true">Средняя</button>
+        <button data-lvl="hard" aria-pressed="false">Сложная</button>
+      </div>
+      <button class="new-btn" id="ksNewBtn">Новая</button>
+    </div>
+
+    <div class="status">
+      <div>Время <b id="ksTimer">0:00</b></div>
+      <div>Решено <b id="ksSolved">0</b></div>
+      <div>Подсказок <b id="ksHints">0</b></div>
+    </div>
+
+    <div class="board-wrap ks">
+      <div class="board ks" id="ksBoard" aria-label="Поле 9 на 9"></div>
+      <div class="loading" id="ksLoading" hidden>Рисую новое поле…</div>
+    </div>
+
+    <div class="pad ks" id="ksPad"></div>
+
+    <div class="tools">
+      <button id="ksUndoBtn"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>Отменить</button>
+      <button id="ksEraseBtn"><svg viewBox="0 0 24 24"><path d="m7 21-4.3-4.3a1 1 0 0 1 0-1.4l10-10a1 1 0 0 1 1.4 0l5.6 5.6a1 1 0 0 1 0 1.4L11 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg>Стереть</button>
+      <button id="ksNotesBtn" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Заметки</button>
+      <button id="ksHintBtn" class="hint-btn"><svg viewBox="0 0 24 24"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0 0 12 2Z"/></svg>Подсказка</button>
     </div>
   </section>
 </div>
@@ -719,6 +769,8 @@ const Track = (() => {
     if (ok) { g.correct++; st.run++; st.bestRun = Math.max(st.bestRun, st.run); } else { g.wrong++; st.run = 0; }
     day(); check(); save();
   }
+  // счётчики, которые нужны только достижениям отдельной игры
+  function bump(gid, key, by = 1) { const g = G(gid); g.extra = g.extra || {}; g.extra[key] = (g.extra[key] || 0) + by; check(); save(); }
   function hint(gid) { G(gid).hints++; check(); save(); }
   function tick(gid) { G(gid).time++; if (++ticks % 15 === 0) { check(); save(); } }
   function win(gid, { lvl, elapsed, hints, mistakes }) {
@@ -728,6 +780,7 @@ const Track = (() => {
     if (record) g.best[lvl] = elapsed;
     if (!mistakes) g.clean++;
     if (!hints) g.solo++;
+    if (!hints && !mistakes) { g.perfect = g.perfect || {}; g.perfect[lvl] = (g.perfect[lvl] || 0) + 1; }
     const h = new Date().getHours();
     if (h < 5) st.flags.owl = 1;
     if (h >= 5 && h < 8) st.flags.lark = 1;
@@ -770,6 +823,7 @@ const Track = (() => {
           val: () => Math.min(g().best.medium || Infinity, g().best.hard || Infinity),
           desc: t => `Реши среднюю или сложную быстрее ${fmt(t)} без подсказок` },
       );
+      if (m.extra) list.push(...m.extra(g, n).map(d => Object.assign({ game: gid }, d)));
     }
     list.push({ id: 'collector', icon: 'star', title: 'Коллекционер', tiers: [5, 15, 30], val: () => Object.entries(st.ach).reduce((a, [k, v]) => a + (k === 'collector' ? 0 : v.tier), 0), desc: t => `Открой ${n(t, 'уровень', 'уровня', 'уровней')} других достижений` });
     return list;
@@ -808,6 +862,8 @@ const Track = (() => {
     heart: '<path d="M12 20.5s-8-4.8-8-10.8a4.4 4.4 0 0 1 8-2.6 4.4 4.4 0 0 1 8 2.6c0 6-8 10.8-8 10.8Z"/>',
     crown: '<path d="m3 7.5 4.5 4.5L12 5l4.5 7L21 7.5 19 19H5Z"/><path d="M5 19h14"/>',
     bolt: '<path d="M13.5 2 4.5 13.5h6.5L10 22l9.5-12H13Z"/>',
+    calc: '<rect x="5" y="2.5" width="14" height="19" rx="2.5"/><path d="M8.5 6.5h7M9 11v4M7 13h4M13.5 12h3M13.5 15h3M8 18.5h0M12 18.5h0M16 18.5h0"/>',
+    snow: '<path d="M12 2.5v19M3.8 7.2l16.4 9.6M3.8 16.8l16.4-9.6M9.5 4l2.5 2.5L14.5 4M9.5 20l2.5-2.5 2.5 2.5M3.4 10.3l3.4.9-.9 3.4M20.6 13.7l-3.4-.9.9-3.4M5.9 9.4l.9-3.4 3.4.9M18.1 14.6l-.9 3.4-3.4-.9"/>',
     star: '<path d="m12 2.8 2.8 5.8 6.3.9-4.6 4.4 1.1 6.3L12 17.2l-5.6 3 1.1-6.3-4.6-4.4 6.3-.9Z"/>',
   };
   // зубчатый край медали
@@ -1004,7 +1060,7 @@ const Track = (() => {
   addEventListener('pagehide', save);
   addEventListener('lg-save', save);
   document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
-  return { register, seed, start, move, hint, tick, win, wins: gid => winsOf(G(gid)), initUI, refresh: renderAvatar, profile, showcase };
+  return { register, seed, start, move, bump, hint, tick, win, wins: gid => winsOf(G(gid)), initUI, refresh: renderAvatar, profile, showcase };
 })();
 
 // ===== Движок Сугуру: генератор, решатель, логические шаги =====
@@ -1997,10 +2053,726 @@ const SudokuApp = (() => {
   return { show, tick, keydown, rules, solved: () => Track.wins('sudoku') };
 })();
 
+// ===== Движок киллер-судоку 9×9: генератор, логические шаги =====
+// Поле 9×9, блоки 3×3. Клетки объединены в «клетки-суммы»: цифры в них не повторяются
+// и в сумме дают число в углу. Задача считается годной, только если её можно решить
+// логикой без перебора: тогда решение заведомо единственное.
+const Killer = (() => {
+  const N = 9, C = 81, ALL = 511;
+  const rowOf = i => (i / N) | 0, colOf = i => i % N;
+  const boxOf = i => ((rowOf(i) / 3) | 0) * 3 + ((colOf(i) / 3) | 0);
+  const UNITS = [];
+  for (let r = 0; r < N; r++) UNITS.push({ kind: 'row', idx: r, cells: [...Array(N).keys()].map(c => r * N + c) });
+  for (let c = 0; c < N; c++) UNITS.push({ kind: 'col', idx: c, cells: [...Array(N).keys()].map(r => r * N + c) });
+  for (let b = 0; b < N; b++) UNITS.push({ kind: 'box', idx: b, cells: [...Array(C).keys()].filter(i => boxOf(i) === b) });
+  const ROWS = UNITS.slice(0, N), COLS = UNITS.slice(N, 2 * N), BOXES = UNITS.slice(2 * N);
+  // области для правила 45: дома и полосы из 2–3 соседних строк или столбцов
+  const REGIONS = UNITS.map(U => Object.assign({ total: 45 }, U));
+  for (let k = 2; k <= 3; k++) for (let a = 0; a + k <= N; a++) {
+    REGIONS.push({ kind: 'rows', idx: a, n: k, total: 45 * k, cells: ROWS.slice(a, a + k).flatMap(U => U.cells) });
+    REGIONS.push({ kind: 'cols', idx: a, n: k, total: 45 * k, cells: COLS.slice(a, a + k).flatMap(U => U.cells) });
+  }
+  const PEERS = [];
+  for (let i = 0; i < C; i++) {
+    const s = new Set([...ROWS[rowOf(i)].cells, ...COLS[colOf(i)].cells, ...BOXES[boxOf(i)].cells]);
+    s.delete(i); PEERS.push([...s]);
+  }
+  const NB = i => {
+    const r = rowOf(i), c = colOf(i), out = [];
+    if (r > 0) out.push(i - N); if (r < N - 1) out.push(i + N);
+    if (c > 0) out.push(i - 1); if (c < N - 1) out.push(i + 1);
+    return out;
+  };
+  const bitCount = m => { let n = 0; while (m) { m &= m - 1; n++; } return n; };
+  const lowBit = m => 31 - Math.clz32(m & -m);
+  const digitsOf = m => { const a = []; for (let d = 1; d <= N; d++) if (m & (1 << (d - 1))) a.push(d); return a; };
+  const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [a[i], a[j]] = [a[j], a[i]]; } return a; };
+
+  // Геометрия задачи: к какой клетке-сумме относится каждая клетка, соседи с учётом клеток-сумм
+  function buildGeo(cages) {
+    const cageOf = new Array(C);
+    cages.forEach((k, ci) => k.cells.forEach(i => { cageOf[i] = ci; }));
+    const peers = PEERS.map((p, i) => [...new Set([...p, ...cages[cageOf[i]].cells.filter(j => j !== i)])]);
+    // клетка, в углу которой пишется сумма: самая верхняя, затем самая левая
+    const anchor = cages.map(k => Math.min(...k.cells));
+    return { cages, cageOf, peers, anchor };
+  }
+
+  // --- полное решённое поле ---
+  function fullGrid() {
+    const g = new Array(C).fill(0);
+    function rec(i) {
+      if (i === C) return true;
+      let m = ALL;
+      for (const p of PEERS[i]) if (g[p]) m &= ~(1 << (g[p] - 1));
+      for (const d of shuffle(digitsOf(m))) { g[i] = d; if (rec(i + 1)) return true; }
+      g[i] = 0; return false;
+    }
+    rec(0);
+    return g;
+  }
+
+  // --- нарезка на клетки-суммы ---
+  function partition(sol, sizes) {
+    const cageOf = new Array(C).fill(-1), cages = [];
+    const free = i => NB(i).filter(j => cageOf[j] < 0).length;
+    for (;;) {
+      const open = [];
+      for (let i = 0; i < C; i++) if (cageOf[i] < 0) open.push(i);
+      if (!open.length) break;
+      // начинаем с самой «зажатой» клетки, чтобы не оставались одиночки
+      let best = Infinity, pick = [];
+      for (const i of open) { const f = free(i); if (f < best) { best = f; pick = [i]; } else if (f === best) pick.push(i); }
+      const start = pick[Math.random() * pick.length | 0];
+      const target = sizes[Math.random() * sizes.length | 0];
+      const cells = [start]; let used = 1 << (sol[start] - 1);
+      cageOf[start] = cages.length;
+      while (cells.length < target) {
+        const front = [];
+        for (const i of cells) for (const j of NB(i)) if (cageOf[j] < 0 && !(used & (1 << (sol[j] - 1))) && !front.includes(j)) front.push(j);
+        if (!front.length) break;
+        front.sort((a, b) => free(a) - free(b) || Math.random() - .5);
+        const j = Math.random() < .7 ? front[0] : front[Math.random() * front.length | 0];
+        cells.push(j); used |= 1 << (sol[j] - 1); cageOf[j] = cages.length;
+      }
+      cages.push({ cells });
+    }
+    // одиночку присоединяем к соседней клетке-сумме, если там нет такой же цифры
+    for (let ci = 0; ci < cages.length; ci++) {
+      const k = cages[ci]; if (k.cells.length !== 1) continue;
+      const i = k.cells[0], d = sol[i];
+      const opts = shuffle(NB(i).map(j => cageOf[j]).filter(cj => cj !== ci && cages[cj].cells.length && cages[cj].cells.length < 6 && !cages[cj].cells.some(j => sol[j] === d)));
+      if (!opts.length) continue;
+      const to = opts.sort((a, b) => cages[a].cells.length - cages[b].cells.length)[0];
+      cages[to].cells.push(i); cageOf[i] = to; k.cells = [];
+    }
+    return cages.filter(k => k.cells.length).map(k => {
+      const cells = k.cells.sort((a, b) => a - b);
+      return { cells, sum: cells.reduce((a, i) => a + sol[i], 0) };
+    });
+  }
+
+  // --- что может стоять в клетке-сумме ---
+  // Перебирает все расстановки в пустых клетках; возвращает возможные цифры для каждой клетки
+  // и подходящие наборы цифр для всей клетки-суммы.
+  function cageOptions(k, grid, cd) {
+    let used = 0, rem = k.sum;
+    const empty = [];
+    for (const i of k.cells) { if (grid[i]) { used |= 1 << (grid[i] - 1); rem -= grid[i]; } else empty.push(i); }
+    const per = new Array(empty.length).fill(0), sets = new Set();
+    empty.sort((a, b) => bitCount(cd[a]) - bitCount(cd[b]));
+    const pick = new Array(empty.length);
+    function rec(n, mask, left) {
+      const k2 = empty.length - n;
+      if (!k2) { if (!left) { for (let t = 0; t < n; t++) per[t] |= 1 << (pick[t] - 1); sets.add(mask); } return; }
+      // границы: k2 самых маленьких и самых больших свободных цифр
+      let lo = 0, hi = 0, a = 0, b = 0;
+      for (let d = 1; d <= N && a < k2; d++) if (!(mask & (1 << (d - 1)))) { lo += d; a++; }
+      for (let d = N; d >= 1 && b < k2; d--) if (!(mask & (1 << (d - 1)))) { hi += d; b++; }
+      if (left < lo || left > hi) return;
+      for (let m = cd[empty[n]] & ~mask; m; m &= m - 1) {
+        const d = lowBit(m) + 1; if (d > left) break;
+        pick[n] = d; rec(n + 1, mask | (1 << (d - 1)), left - d);
+      }
+    }
+    rec(0, used, rem);
+    const cellMask = new Map();
+    empty.forEach((i, t) => cellMask.set(i, per[t]));
+    return { empty, cellMask, sets: [...sets] };
+  }
+
+  function candidatesFor(grid, geo) {
+    const cd = new Array(C);
+    for (let i = 0; i < C; i++) {
+      if (grid[i]) { cd[i] = 1 << (grid[i] - 1); continue; }
+      let m = ALL;
+      for (const p of geo.peers[i]) if (grid[p]) m &= ~(1 << (grid[p] - 1));
+      cd[i] = m;
+    }
+    return cd;
+  }
+
+  // Правило 45: для строки, столбца или блока считаем клетки-суммы внутри и задевающие его
+  function rule45(U, grid, geo) {
+    const inU = new Set(U.cells), seen = new Set();
+    let inSum = 0, touchSum = 0;
+    const inner = [], touching = [];
+    for (const i of U.cells) {
+      const ci = geo.cageOf[i]; if (seen.has(ci)) continue; seen.add(ci);
+      const k = geo.cages[ci];
+      touching.push(ci); touchSum += k.sum;
+      if (k.cells.every(j => inU.has(j))) { inner.push(ci); inSum += k.sum; }
+    }
+    const innerCells = new Set(inner.flatMap(ci => geo.cages[ci].cells));
+    const rest = U.cells.filter(i => !innerCells.has(i));
+    const out = touching.flatMap(ci => geo.cages[ci].cells).filter(i => !inU.has(i));
+    const sumOf = cs => cs.reduce((a, i) => a + grid[i], 0);
+    return {
+      inner, touching, rest, out,
+      restEmpty: rest.filter(i => !grid[i]), restLeft: U.total - inSum - sumOf(rest),
+      outEmpty: out.filter(i => !grid[i]), outLeft: touchSum - U.total - sumOf(out),
+      inSum, touchSum,
+    };
+  }
+
+  // Следующий логический шаг. level 1: одиночки и наборы в клетках-суммах;
+  // level 2: + блок/линия, обязательная цифра клетки-суммы, голые пары; level 3: + правило 45.
+  function nextStep(grid, cd, geo, level) {
+    for (let i = 0; i < C; i++) if (!grid[i] && cd[i] && !(cd[i] & (cd[i] - 1)))
+      return { type: 'naked', cell: i, value: lowBit(cd[i]) + 1 };
+    for (const U of [...BOXES, ...ROWS, ...COLS]) for (let d = 1; d <= N; d++) {
+      const bit = 1 << (d - 1); let n = 0, w = -1, placed = false;
+      for (const i of U.cells) { if (grid[i] === d) { placed = true; break; } if (!grid[i] && (cd[i] & bit)) { n++; w = i; } }
+      if (!placed && n === 1) return { type: 'hidden', cell: w, value: d, unit: U };
+    }
+    for (const k of geo.cages) {
+      const empty = k.cells.filter(i => !grid[i]);
+      if (empty.length === 1) {
+        const v = k.sum - k.cells.reduce((a, i) => a + grid[i], 0);
+        if (v >= 1 && v <= N && (cd[empty[0]] & (1 << (v - 1)))) return { type: 'cageLast', cell: empty[0], value: v, cage: k };
+      }
+    }
+    // наборы цифр в клетках-суммах
+    const opts = [];
+    for (const k of geo.cages) {
+      const o = cageOptions(k, grid, cd); opts.push(o);
+      if (!o.empty.length || !o.sets.length) continue;
+      // цифра есть во всех подходящих наборах и встать может только в одну клетку
+      const must = o.sets.reduce((a, x) => a & x, ALL);
+      for (let m = must; m; m &= m - 1) {
+        const d = lowBit(m) + 1, bit = 1 << (d - 1);
+        if (k.cells.some(i => grid[i] === d)) continue;
+        const sp = o.empty.filter(i => o.cellMask.get(i) & bit);
+        if (sp.length === 1 && (cd[sp[0]] & bit)) return { type: 'cageHidden', cell: sp[0], value: d, cage: k, sets: o.sets };
+      }
+      const elim = [];
+      for (const i of o.empty) { const x = cd[i] & ~o.cellMask.get(i); if (x) elim.push({ cell: i, mask: x }); }
+      if (elim.length) return { type: 'cage', cage: k, sets: o.sets, elim };
+    }
+    if (level < 2) return null;
+    const spotsOf = (U, bit) => U.cells.filter(i => !grid[i] && (cd[i] & bit));
+    const lockTry = (A, B, d, spots) => {
+      const bit = 1 << (d - 1), inA = new Set(A.cells);
+      if (!spots.every(i => B.cells.includes(i))) return null;
+      const elim = B.cells.filter(i => !inA.has(i) && !grid[i] && (cd[i] & bit));
+      return elim.length ? { type: 'locked', value: d, from: A, line: B, cells: spots, elim: elim.map(cell => ({ cell, mask: bit })) } : null;
+    };
+    for (let d = 1; d <= N; d++) {
+      const bit = 1 << (d - 1);
+      for (const B of BOXES) {
+        const sp = spotsOf(B, bit); if (sp.length < 2) continue;
+        const st = lockTry(B, ROWS[rowOf(sp[0])], d, sp) || lockTry(B, COLS[colOf(sp[0])], d, sp);
+        if (st) return st;
+      }
+      for (const L of [...ROWS, ...COLS]) {
+        const sp = spotsOf(L, bit); if (sp.length < 2) continue;
+        const st = lockTry(L, BOXES[boxOf(sp[0])], d, sp);
+        if (st) return st;
+      }
+    }
+    // цифра, которая обязана быть в клетке-сумме, и все её места на одной линии или в одном блоке
+    for (let ci = 0; ci < geo.cages.length; ci++) {
+      const k = geo.cages[ci], o = opts[ci];
+      if (!o.empty.length || !o.sets.length) continue;
+      const must = o.sets.reduce((a, s) => a & s, ALL);
+      for (let m = must; m; m &= m - 1) {
+        const d = lowBit(m) + 1, bit = 1 << (d - 1);
+        if (k.cells.some(i => grid[i] === d)) continue;
+        const sp = o.empty.filter(i => cd[i] & bit);
+        if (!sp.length) continue;
+        for (const U of [ROWS[rowOf(sp[0])], COLS[colOf(sp[0])], BOXES[boxOf(sp[0])]]) {
+          if (!sp.every(i => U.cells.includes(i))) continue;
+          const elim = U.cells.filter(i => !k.cells.includes(i) && !grid[i] && (cd[i] & bit));
+          if (elim.length) return { type: 'cageLock', value: d, cage: k, unit: U, cells: sp, elim: elim.map(cell => ({ cell, mask: bit })) };
+        }
+      }
+    }
+    for (const U of UNITS) {
+      const two = U.cells.filter(i => !grid[i] && bitCount(cd[i]) === 2);
+      for (let a = 0; a < two.length; a++) for (let b = a + 1; b < two.length; b++) {
+        const m = cd[two[a]]; if (cd[two[b]] !== m) continue;
+        const elim = U.cells.filter(i => i !== two[a] && i !== two[b] && !grid[i] && (cd[i] & m)).map(cell => ({ cell, mask: cd[cell] & m }));
+        if (elim.length) return { type: 'pair', mask: m, unit: U, cells: [two[a], two[b]], elim };
+      }
+    }
+    if (level < 3) return null;
+    if (level >= 3) for (const U of REGIONS) {
+      const R = rule45(U, grid, geo);
+      if (R.restEmpty.length === 1 && R.restLeft >= 1 && R.restLeft <= N && (cd[R.restEmpty[0]] & (1 << (R.restLeft - 1))) && R.inner.length)
+        return { type: 'innie', cell: R.restEmpty[0], value: R.restLeft, unit: U, r: R };
+      if (R.outEmpty.length === 1 && R.outLeft >= 1 && R.outLeft <= N && (cd[R.outEmpty[0]] & (1 << (R.outLeft - 1))))
+        return { type: 'outie', cell: R.outEmpty[0], value: R.outLeft, unit: U, r: R };
+    }
+    // правило 45, когда остаются две клетки: их сумма известна, и они в одном доме, значит разные
+    for (const U of REGIONS) {
+      const R = rule45(U, grid, geo);
+      if (R.restEmpty.length !== 2 || !R.inner.length) continue;
+      const [a, b] = R.restEmpty, T = R.restLeft, elim = [], same = PEERS[a].includes(b);
+      const keep = (x, y) => { let m = 0; for (const d of digitsOf(cd[x])) { const e = T - d; if ((!same || e !== d) && e >= 1 && e <= N && (cd[y] & (1 << (e - 1)))) m |= 1 << (d - 1); } return m; };
+      const ka = keep(a, b), kb = keep(b, a);
+      if (cd[a] & ~ka) elim.push({ cell: a, mask: cd[a] & ~ka });
+      if (cd[b] & ~kb) elim.push({ cell: b, mask: cd[b] & ~kb });
+      if (elim.length) return { type: 'innie2', unit: U, cells: [a, b], total: T, same, r: R, elim };
+    }
+    return null;
+  }
+  function place(grid, cd, geo, i, d) {
+    grid[i] = d; cd[i] = 1 << (d - 1);
+    for (const p of geo.peers[i]) if (!grid[p]) cd[p] &= ~(1 << (d - 1));
+  }
+  function logicSolve(givens, geo, level) {
+    const grid = givens.slice(), cd = candidatesFor(grid, geo);
+    let steps = 0, used = 0;
+    const max = { naked: 1, hidden: 1, cageLast: 1, cageHidden: 1, cage: 1, locked: 2, cageLock: 2, pair: 2, innie: 3, outie: 3, innie2: 3 };
+    for (;;) {
+      const st = nextStep(grid, cd, geo, level);
+      if (!st) break;
+      steps++; used = Math.max(used, max[st.type]);
+      if (st.elim) { for (const e of st.elim) cd[e.cell] &= ~e.mask; if (st.elim.some(e => !cd[e.cell])) break; continue; }
+      place(grid, cd, geo, st.cell, st.value);
+    }
+    return { solved: grid.every(x => x), steps, used, grid };
+  }
+
+  // Делит клетку-сумму на две связные части: так у игрока появляется больше подсказок-сумм
+  function split(cages, ci, sol) {
+    const k = cages[ci], cells = k.cells;
+    if (cells.length < 2) return false;
+    const inK = new Set(cells);
+    const connected = part => {
+      const set = new Set(part), seen = new Set([part[0]]), q = [part[0]];
+      while (q.length) for (const j of NB(q.pop())) if (set.has(j) && !seen.has(j)) { seen.add(j); q.push(j); }
+      return seen.size === part.length;
+    };
+    for (let t = 0; t < 30; t++) {
+      // большую делим без одиночек: одиночка — это почти готовая цифра
+      const min = cells.length >= 4 ? 2 : 1;
+      const start = cells[Math.random() * cells.length | 0], want = min + (Math.random() * (cells.length - 2 * min + 1) | 0);
+      const a = [start];
+      while (a.length < want) {
+        const front = a.flatMap(NB).filter(j => inK.has(j) && !a.includes(j));
+        if (!front.length) break;
+        a.push(front[Math.random() * front.length | 0]);
+      }
+      const b = cells.filter(i => !a.includes(i));
+      if (a.length < min || b.length < min || !connected(b)) continue;
+      const mk = cs => ({ cells: cs.sort((x, y) => x - y), sum: cs.reduce((s, i) => s + sol[i], 0) });
+      cages.splice(ci, 1, mk(a), mk(b));
+      return true;
+    }
+    return false;
+  }
+
+  // --- генерация ---
+  const LEVELS = {
+    easy:   { sizes: [2, 2, 2, 3, 3, 3], logic: 1, givens: 14 },
+    medium: { sizes: [2, 2, 3, 3, 3, 4, 4], logic: 2, givens: 0, need: 2 },
+    hard:   { sizes: [2, 3, 3, 4, 4, 5, 5], logic: 3, givens: 0, need: 3 },
+  };
+  function generate(difficulty = 'medium') {
+    const cfg = LEVELS[difficulty] || LEVELS.medium;
+    for (let tries = 0; ; tries++) {
+      const sol = fullGrid(), cages = partition(sol, cfg.sizes);
+      // одиночные клетки-суммы — по сути готовые цифры; на средней и сложной их не держим
+      const singles = cages.filter(k => k.cells.length === 1).length;
+      if (singles > (cfg.givens ? 3 : 1) && tries < 200) continue;
+      const givens = new Array(C).fill(0);
+      let geo = buildGeo(cages), r = logicSolve(givens, geo, cfg.logic), opened = 0;
+      // если логика застряла, помогаем там, где застряла: на лёгкой открываем цифру,
+      // на остальных делим одну из нерешённых клеток-сумм на две
+      for (let guard = 0; !r.solved && guard < 40; guard++) {
+        const stuck = [];
+        for (let i = 0; i < C; i++) if (!r.grid[i]) stuck.push(i);
+        const i = stuck[Math.random() * stuck.length | 0];
+        if (opened < cfg.givens) { givens[i] = sol[i]; opened++; }
+        else {
+          const ids = [...new Set(stuck.map(j => geo.cageOf[j]))].filter(ci => cages[ci].cells.length > 1);
+          const big = ids.filter(ci => cages[ci].cells.length >= 4), from = big.length ? big : ids;
+          if (!from.length || !split(cages, from[Math.random() * from.length | 0], sol)) continue;
+        }
+        geo = buildGeo(cages);
+        r = logicSolve(givens, geo, cfg.logic);
+      }
+      if (!r.solved) continue;
+      // средняя и сложная должны требовать свои приёмы, а не только самые простые
+      if (cfg.need && r.used < cfg.need && tries < 200) continue;
+      return { cages, givens, solution: sol, difficulty };
+    }
+  }
+
+  return { N, C, REGIONS, rowOf, colOf, boxOf, UNITS, ROWS, COLS, BOXES, PEERS, buildGeo, cageOptions, candidatesFor, nextStep, logicSolve, rule45, generate, digitsOf };
+})();
+
+// ===== Игра Киллер-судоку 9×9 =====
+const KillerApp = (() => {
+  const E = Killer, N = E.N, C = E.C;
+  const KEY = 'killer-dalya-v1';
+  const LVL_NAME = { easy: 'Лёгкая', medium: 'Средняя', hard: 'Сложная' };
+
+  let S = null;      // текущая партия
+  let geo = null;    // клетки-суммы и соседи
+  let level = 'medium';
+  let cells = [], sums = [], cageEls = [], padBtns = [];
+  let notesMode = false;
+
+  function load() {
+    try {
+      const d = JSON.parse(localStorage.getItem(Profiles.key(KEY)) || 'null');
+      if (d) { level = d.level || level; if (d.game && d.game.p) S = d.game; }
+    } catch (e) {}
+  }
+  function save() {
+    if (Profiles.locked) return;
+    try { localStorage.setItem(Profiles.key(KEY), JSON.stringify({ level, game: S })); } catch (e) {}
+  }
+
+  function newGame(lvl = level) {
+    level = lvl;
+    $('ksLoading').hidden = false;
+    setTimeout(() => {
+      const p = E.generate(lvl);
+      S = { p, vals: p.givens.slice(), notes: new Array(C).fill(0), elapsed: 0, hints: 0, mistakes: 0, done: false, sel: -1, history: [], counted: [] };
+      $('ksLoading').hidden = true;
+      setup(); save(); Track.start('killer');
+    }, 30);
+  }
+
+  function setup() {
+    geo = E.buildGeo(S.p.cages);
+    S.counted = S.counted || [];
+    const board = $('ksBoard');
+    board.innerHTML = '';
+    cells = []; sums = [];
+    for (let i = 0; i < C; i++) {
+      const d = document.createElement('div');
+      d.className = 'cell';
+      d.addEventListener('pointerdown', e => { e.preventDefault(); select(i); });
+      board.appendChild(d); cells.push(d);
+    }
+    // сумма в левом верхнем углу клетки-суммы
+    geo.cages.forEach((k, ci) => {
+      const s = document.createElement('span');
+      s.className = 'cage-sum'; s.textContent = k.sum;
+      cells[geo.anchor[ci]].appendChild(s); cells[geo.anchor[ci]].classList.add('anchor'); sums.push(s);
+    });
+    board.appendChild(drawLines());
+    document.querySelectorAll('#screen-killer .seg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.lvl === S.p.difficulty)));
+    render();
+  }
+
+  function drawLines() {
+    const ns = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', `0 0 ${N} ${N}`); svg.setAttribute('class', 'lines'); svg.setAttribute('preserveAspectRatio', 'none');
+    const line = (x1, y1, x2, y2, cls) => {
+      const l = document.createElementNS(ns, 'line');
+      l.setAttribute('x1', x1); l.setAttribute('y1', y1); l.setAttribute('x2', x2); l.setAttribute('y2', y2);
+      l.setAttribute('class', cls); return l;
+    };
+    const thick = [];
+    for (let k = 1; k < N; k++) {
+      const v = line(k, 0, k, N, k % 3 ? 'thin' : 'thick'), h = line(0, k, N, k, k % 3 ? 'thin' : 'thick');
+      for (const l of [v, h]) l.getAttribute('class') === 'thick' ? thick.push(l) : svg.appendChild(l);
+    }
+    thick.forEach(l => svg.appendChild(l));
+    // пунктирные рамки клеток-сумм, чуть внутри клеток
+    const m = .1, cageOf = geo.cageOf;
+    const same = (r, c, ci) => r >= 0 && r < N && c >= 0 && c < N && cageOf[r * N + c] === ci;
+    cageEls = geo.cages.map((k, ci) => {
+      const g = document.createElementNS(ns, 'g'); g.setAttribute('class', 'cage');
+      for (const i of k.cells) {
+        const r = E.rowOf(i), c = E.colOf(i), in_ = (dr, dc) => same(r + dr, c + dc, ci);
+        // верх и низ
+        for (const [dr, y] of [[-1, r + m], [1, r + 1 - m]]) if (!in_(dr, 0)) {
+          const x1 = !in_(0, -1) ? c + m : in_(dr, -1) ? c - m : c;
+          const x2 = !in_(0, 1) ? c + 1 - m : in_(dr, 1) ? c + 1 + m : c + 1;
+          g.appendChild(line(x1, y, x2, y, 'dash'));
+        }
+        // лево и право
+        for (const [dc, x] of [[-1, c + m], [1, c + 1 - m]]) if (!in_(0, dc)) {
+          const y1 = !in_(-1, 0) ? r + m : in_(-1, dc) ? r - m : r;
+          const y2 = !in_(1, 0) ? r + 1 - m : in_(1, dc) ? r + 1 + m : r + 1;
+          g.appendChild(line(x, y1, x, y2, 'dash'));
+        }
+      }
+      svg.appendChild(g); return g;
+    });
+    const f = document.createElementNS(ns, 'rect');
+    f.setAttribute('x', 0); f.setAttribute('y', 0); f.setAttribute('width', N); f.setAttribute('height', N); f.setAttribute('class', 'frame');
+    svg.appendChild(f);
+    return svg;
+  }
+
+  function conflicts() {
+    const bad = new Set();
+    for (let i = 0; i < C; i++) {
+      const v = S.vals[i]; if (!v) continue;
+      for (const p of geo.peers[i]) if (S.vals[p] === v) { bad.add(i); bad.add(p); }
+    }
+    return bad;
+  }
+  // клетка-сумма, где сумма уже не сходится
+  function cageBad(k) {
+    let s = 0, full = true;
+    for (const i of k.cells) { if (S.vals[i]) s += S.vals[i]; else full = false; }
+    return full ? s !== k.sum : s >= k.sum;
+  }
+
+  function render() {
+    const bad = conflicts(), sel = S.sel, selVal = sel >= 0 ? S.vals[sel] : 0;
+    const count = new Array(N + 1).fill(0);
+    for (let i = 0; i < C; i++) {
+      const d = cells[i], v = S.vals[i];
+      if (v) count[v]++;
+      d.classList.toggle('given', !!S.p.givens[i]);
+      d.classList.toggle('sel', i === sel);
+      d.classList.toggle('same', sel >= 0 && i !== sel && !!selVal && v === selVal);
+      d.classList.toggle('bad', bad.has(i) && !S.p.givens[i]);
+      let el = d.querySelector('.val');
+      if (!el) { el = document.createElement('div'); el.className = 'val'; d.insertBefore(el, d.firstChild); }
+      if (v) el.textContent = v;
+      else if (S.notes[i]) {
+        let h = '<div class="notes">';
+        for (let k = 1; k <= N; k++) h += `<span>${S.notes[i] & (1 << (k - 1)) ? k : ''}</span>`;
+        el.innerHTML = h + '</div>';
+      } else el.textContent = '';
+    }
+    geo.cages.forEach((k, ci) => {
+      sums[ci].classList.toggle('bad', cageBad(k));
+      cageEls[ci].classList.toggle('on', sel >= 0 && geo.cageOf[sel] === ci);
+    });
+    const locked = sel < 0 || !!S.p.givens[sel] || S.done;
+    padBtns.forEach((b, k) => { b.disabled = locked; b.classList.toggle('full', count[k + 1] >= N); });
+    $('ksPad').classList.toggle('noting', notesMode);
+    $('ksHints').textContent = S.hints;
+    $('ksSolved').textContent = Track.wins('killer');
+    $('ksTimer').textContent = fmt(S.elapsed);
+  }
+
+  function select(i) { S.sel = i; render(); }
+
+  function snapshot() {
+    S.history.push([S.vals.slice(), S.notes.slice()]);
+    if (S.history.length > 300) S.history.shift();
+  }
+
+  function input(n) {
+    const i = S.sel;
+    if (i < 0 || S.done || S.p.givens[i]) return;
+    snapshot();
+    if (notesMode && !S.vals[i]) {
+      S.notes[i] ^= 1 << (n - 1);
+    } else {
+      S.vals[i] = S.vals[i] === n ? 0 : n;
+      if (S.vals[i]) { const ok = n === S.p.solution[i]; if (!ok) S.mistakes = (S.mistakes || 0) + 1; Track.move('killer', ok); }
+      if (S.vals[i]) for (const p of geo.peers[i]) S.notes[p] &= ~(1 << (n - 1));
+    }
+    afterMove();
+  }
+  function erase() {
+    const i = S.sel;
+    if (i < 0 || S.done || S.p.givens[i] || (!S.vals[i] && !S.notes[i])) return;
+    snapshot(); S.vals[i] = 0; S.notes[i] = 0; afterMove();
+  }
+  function undo() {
+    if (S.done || !S.history.length) return;
+    [S.vals, S.notes] = S.history.pop(); afterMove();
+  }
+  function afterMove() {
+    // верно собранные клетки-суммы идут в достижение, каждая один раз за партию
+    geo.cages.forEach((k, ci) => {
+      if (S.counted.includes(ci) || k.cells.every(i => S.p.givens[i])) return;
+      if (k.cells.every(i => S.vals[i] === S.p.solution[i])) { S.counted.push(ci); Track.bump('killer', 'cages'); }
+    });
+    render(); save();
+    if (S.vals.every((v, i) => v === S.p.solution[i])) win();
+  }
+
+  // ===== Подсказки =====
+  async function askHint() {
+    if (S.done) return;
+    const go = await sheet({ title: HintGate.title, body: `<p>${HintGate.text}</p>`, ok: 'Получить подсказку', cancel: Profiles.G('Сама справлюсь', 'Сам справлюсь') });
+    if (!go || !(await HintGate.request())) return;
+    S.hints++; Track.hint('killer'); save(); render();
+    showHint();
+  }
+
+  const sets = list => {
+    const t = list.slice(0, 4).map(m => E.digitsOf(m).join('+'));
+    return (t.length > 1 ? t.slice(0, -1).join(', ') + ' или ' + t[t.length - 1] : t[0]) + (list.length > 4 ? ' и др.' : '');
+  };
+  const fits = list => (list.length > 1 ? `подходят только наборы ${sets(list)}` : `подходит только набор ${sets(list)}`);
+  const place = U => ({
+    row: `строке ${U.idx + 1}`, col: `столбце ${U.idx + 1}`, box: 'этом блоке 3×3',
+    rows: `строках ${U.idx + 1}–${U.idx + U.n}`, cols: `столбцах ${U.idx + 1}–${U.idx + U.n}`,
+  }[U.kind]);
+  const IN = { row: 'одной строке', col: 'одном столбце', box: 'одном блоке' };
+  const REST = { row: 'этой строки', col: 'этого столбца', box: 'этого блока' };
+  const cageName = k => `клетки-суммы ${k.sum}`;
+
+  function trickText(t) {
+    switch (t.type) {
+      case 'cage': return `В клетке-сумме ${t.cage.sum} из ${['', 'одной', 'двух', 'трёх', 'четырёх', 'пяти', 'шести'][t.cage.cells.length]} клеток ${fits(t.sets)}.`;
+      case 'locked': return `В ${IN[t.from.kind]} цифра ${t.value} может встать только в клетки, которые лежат в ${IN[t.line.kind]}. Значит, в остальных клетках ${REST[t.line.kind]} ${t.value} нет.`;
+      case 'cageLock': return `Цифра ${t.value} обязательно есть в клетке-сумме ${t.cage.sum}, и все её места там лежат в ${IN[t.unit.kind]}. Значит, в остальных клетках ${REST[t.unit.kind]} ${t.value} нет.`;
+      case 'pair': return `В ${IN[t.unit.kind]} есть две клетки, где возможны только ${E.digitsOf(t.mask).join(' и ')}. Они займут эти клетки, поэтому в остальных клетках ${REST[t.unit.kind]} этих цифр нет.`;
+      case 'innie2': return `Правило 45: сумма цифр в ${place(t.unit)} равна ${t.unit.total}. Если вычесть клетки-суммы, которые лежат там целиком, на две оставшиеся пустые клетки приходится ${t.total}${t.same ? ', и цифры в них разные' : ''}.`;
+    }
+    return '';
+  }
+
+  function showHint() {
+    const sol = S.p.solution;
+    const wrong = S.vals.findIndex((v, i) => v && v !== sol[i]);
+    if (wrong >= 0) {
+      S.sel = wrong; render(); flash(wrong);
+      sheet({ title: 'Тут закралась ошибка', body: '<p>В выделенной клетке стоит неверная цифра. Если её убрать, дальше пойдёт легче.</p>', ok: 'Стереть', cancel: 'Оставить' })
+        .then(ok => { if (ok) { snapshot(); S.vals[wrong] = 0; afterMove(); } });
+      return;
+    }
+    const grid = S.vals.slice(), cd = E.candidatesFor(grid, geo), tricks = [];
+    let step = null;
+    for (let guard = 0; guard < 800; guard++) {
+      const st = E.nextStep(grid, cd, geo, 3);
+      if (!st) break;
+      if (st.elim) { for (const e of st.elim) cd[e.cell] &= ~e.mask; tricks.push(st); continue; }
+      step = st; break;
+    }
+    let i, v, text;
+    if (step) {
+      i = step.cell; v = step.value;
+      // приём, который последним убрал кандидата там, где теперь видна цифра
+      const near = step.type === 'naked' ? (e => e.cell === i) : step.type === 'hidden' ? (e => step.unit.cells.includes(e.cell) && (e.mask & (1 << (v - 1)))) : null;
+      const trick = near && [...tricks].reverse().find(t => t.elim.some(near));
+      const pre = trick ? trickText(trick) + ' ' : '';
+      const R = step.r, p = R && (step.type === 'innie' ? R.rest : R.out).reduce((a, j) => a + S.vals[j], 0);
+      switch (step.type) {
+        case 'naked': text = `${pre}${trick ? 'Поэтому в' : 'В'} этой клетке может стоять только ${v}: остальные цифры уже есть в её строке, столбце, блоке или клетке-сумме.`; break;
+        case 'hidden': text = `Посмотри на ${step.unit.kind === 'box' ? 'этот блок' : step.unit.kind === 'row' ? 'эту строку' : 'этот столбец'}: цифра ${v} может встать только в эту клетку.${trick ? ` А в другие нельзя вот почему. ${pre.trim()}` : ''}`; break;
+        case 'cageLast': text = step.cage.cells.length === 1 ? `Эта клетка-сумма из одной клетки, так что здесь просто ${v}.` : `В клетке-сумме ${step.cage.sum} осталась одна пустая клетка: ${step.cage.sum} − ${step.cage.sum - v} = ${v}.`; break;
+        case 'cageHidden': text = `Для клетки-суммы ${step.cage.sum} ${fits(step.sets)}. Цифра ${v} есть ${step.sets.length > 1 ? 'в каждом из них' : 'в нём'}, а встать может только сюда.`; break;
+        case 'innie': text = `Правило 45: сумма цифр в ${place(step.unit)} равна ${step.unit.total}. Клетки-суммы, которые лежат там целиком, дают ${R.inSum}${p ? `, уже стоящие цифры ещё ${p}` : ''}. На эту клетку остаётся ${step.unit.total} − ${R.inSum}${p ? ` − ${p}` : ''} = ${v}.`; break;
+        case 'outie': text = `Правило 45: клетки-суммы, которые задевают ${place(step.unit).replace(/^(строке|столбце|строках|столбцах|этом блоке)/, w => ({ строке: 'строку', столбце: 'столбец', строках: 'строки', столбцах: 'столбцы', 'этом блоке': 'этот блок' }[w]))}, вместе дают ${R.touchSum}. Это ${step.unit.total} плюс клетки снаружи${p ? `, где уже стоит ${p}` : ''}, так что здесь ${R.touchSum} − ${step.unit.total}${p ? ` − ${p}` : ''} = ${v}.`; break;
+      }
+    } else {
+      const empty = []; for (let k = 0; k < C; k++) if (!S.vals[k]) empty.push(k);
+      i = empty[Math.random() * empty.length | 0]; v = sol[i];
+      text = `Здесь стоит ${v}.`;
+    }
+    S.sel = i; render(); flash(i);
+    sheet({ title: 'Подсказка', body: `<p>${text}</p>`, ok: `Поставить ${v}`, cancel: Profiles.G('Дальше сама', 'Дальше сам') })
+      .then(ok => { if (ok && !S.done) { snapshot(); S.vals[i] = v; afterMove(); } });
+  }
+
+  function flash(i) {
+    const d = cells[i]; d.classList.remove('hint'); void d.offsetWidth; d.classList.add('hint');
+    setTimeout(() => d.classList.remove('hint'), 3800);
+  }
+
+  function rules() {
+    // картинка: клетка-сумма 10 из трёх клеток уголком
+    const cell = (x, y, v) => `<rect x="${x}" y="${y}" width="20" height="20" fill="var(--area)" stroke="var(--line)" stroke-width="1"/>
+      <text x="${x + 11}" y="${y + 16.5}" text-anchor="middle" font-size="10" font-family="Unbounded, sans-serif" fill="var(--user)">${v}</text>`;
+    const g = cell(2, 2, 1) + cell(22, 2, 4) + cell(22, 22, 5) + cell(42, 2, '') + cell(2, 22, '') + cell(42, 22, '') + cell(2, 42, '') + cell(22, 42, '') + cell(42, 42, '') +
+      '<path d="M4 4H40V40H24V20H4Z" fill="none" stroke="var(--ink)" stroke-width="1.2" stroke-dasharray="3 2"/>' +
+      '<rect x="3" y="3" width="8" height="6" fill="var(--area)"/><text x="3.5" y="8.3" font-size="6" font-weight="700" font-family="Manrope, sans-serif" fill="var(--ink)">10</text>';
+    sheet({
+      title: 'Киллер-судоку',
+      body: `
+        <div class="rule"><svg viewBox="0 0 64 64">${g}</svg>
+          <p>Как обычное судоку: в каждой строке, столбце и блоке 3×3 цифры от 1 до 9 без повторов.</p></div>
+        <p>Пунктиром обведены клетки-суммы. Цифры в них складываются в число в уголке и не повторяются.</p>
+        <p class="muted">Полезно помнить: сумма любой строки, столбца или блока равна 45. Нажми на клетку, потом на цифру. В режиме «Заметки» ставятся пометки. Повторы и несошедшиеся суммы подсвечиваются красным.</p>`,
+      ok: 'Понятно',
+    });
+  }
+
+  function win() {
+    S.done = true;
+    const { record } = Track.win('killer', { lvl: S.p.difficulty, elapsed: S.elapsed, hints: S.hints, mistakes: S.mistakes || 0 });
+    save(); render(); hearts();
+    sheet({
+      cls: 'win',
+      title: praise(),
+      body: `<div class="stats">
+        <div><span>Время</span><b>${fmt(S.elapsed)}</b></div>
+        <div><span>Уровень</span><b>${LVL_NAME[S.p.difficulty]}</b></div>
+        <div><span>Подсказок</span><b>${S.hints}</b></div>
+        <div><span>Ошибок</span><b>${S.mistakes || 0}</b></div></div>
+        ${record ? '<p class="muted">Новый рекорд без подсказок на этом уровне.</p>' : ''}`,
+      ok: 'Ещё одну', cancel: 'Полюбоваться',
+    }).then(ok => { if (ok) newGame(S.p.difficulty); });
+  }
+
+  // ===== Запуск =====
+  function bind() {
+    const pad = $('ksPad');
+    for (let k = 1; k <= N; k++) {
+      const b = document.createElement('button'); b.textContent = k;
+      b.addEventListener('click', () => input(k)); pad.appendChild(b); padBtns.push(b);
+    }
+    document.querySelectorAll('#screen-killer .seg button').forEach(b => b.addEventListener('click', () => {
+      if (b.dataset.lvl === S.p.difficulty && !S.done) return;
+      const started = !S.done && S.vals.some((v, i) => v && !S.p.givens[i]);
+      if (!started) return newGame(b.dataset.lvl);
+      sheet({ title: 'Начать новую?', body: `<p>Текущая партия не решена. Начать новую, уровень «${LVL_NAME[b.dataset.lvl]}»?</p>`, ok: 'Начать', cancel: 'Остаться' })
+        .then(ok => ok && newGame(b.dataset.lvl));
+    }));
+    $('ksNewBtn').onclick = () => {
+      const started = !S.done && S.vals.some((v, i) => v && !S.p.givens[i]);
+      if (!started) return newGame(S.p.difficulty);
+      sheet({ title: 'Начать новую?', body: '<p>Текущая партия не решена, прогресс пропадёт.</p>', ok: 'Начать', cancel: 'Остаться' })
+        .then(ok => ok && newGame(S.p.difficulty));
+    };
+    $('ksUndoBtn').onclick = undo;
+    $('ksEraseBtn').onclick = erase;
+    $('ksNotesBtn').onclick = () => { notesMode = !notesMode; $('ksNotesBtn').setAttribute('aria-pressed', String(notesMode)); render(); };
+    $('ksHintBtn').onclick = askHint;
+  }
+  function keydown(e) {
+    if (!S) return;
+    const k = e.key.toLowerCase();
+    if (k >= '1' && k <= '9') input(+k);
+    else if (k === 'backspace' || k === 'delete' || k === '0') erase();
+    else if (k === 'n' || k === 'т') $('ksNotesBtn').click();
+    else if ((e.metaKey || e.ctrlKey) && k === 'z') undo();
+    else if (e.key.startsWith('Arrow')) {
+      const i = S.sel < 0 ? 40 : S.sel, r = E.rowOf(i), c = E.colOf(i);
+      const [dr, dc] = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] }[e.key];
+      select(((r + dr + N) % N) * N + (c + dc + N) % N); e.preventDefault();
+    }
+  }
+  function tick() {
+    if (S && !S.done && $('ksLoading').hidden) { S.elapsed++; Track.tick('killer'); $('ksTimer').textContent = fmt(S.elapsed); if (S.elapsed % 10 === 0) save(); }
+  }
+  let shown = false;
+  function show() {
+    if (shown) return;
+    shown = true; bind();
+    if (S) { S.sel = -1; setup(); } else newGame(level);
+    try { if (!localStorage.getItem(Profiles.key(KEY + '-seen'))) { localStorage.setItem(Profiles.key(KEY + '-seen'), '1'); rules(); } } catch (e) {}
+  }
+  load();
+  Track.register('killer', {
+    title: 'Киллер-судоку', speed: [1800, 1200, 780],
+    extra: (g, n) => [
+      { id: 'killer-cages', icon: 'calc', title: 'Калькулятор', tiers: [50, 250, 1000], val: () => (g().extra || {}).cages || 0,
+        desc: t => `Верно заполни ${n(t, 'клетку-сумму', 'клетки-суммы', 'клеток-сумм')}` },
+      { id: 'killer-cold', icon: 'snow', title: 'Хладнокровие', tiers: [1, 5, 20], val: () => (g().perfect || {}).hard || 0,
+        desc: t => `Реши сложное киллер-судоку без подсказок и ошибок${t > 1 ? ` ${n(t, 'раз', 'раза', 'раз')}` : ''}` },
+    ],
+  });
+  addEventListener('pagehide', () => S && save());
+  addEventListener('lg-save', () => S && save());
+  document.addEventListener('visibilitychange', () => { if (document.hidden && S) save(); });
+  return { show, tick, keydown, rules, solved: () => Track.wins('killer') };
+})();
+
 // ===== Переключение между играми =====
 const GAMES = {
   suguru: { app: SuguruApp, title: 'Сугуру', size: '9×9', about: 'Области с числами, одинаковые не касаются' },
   sudoku: { app: SudokuApp, title: 'Судоку', size: '12×12', about: 'Числа 1–12 в строках, столбцах и блоках' },
+  killer: { app: KillerApp, title: 'Киллер-судоку', brand: 'Киллер', size: '9×9', about: 'Судоку, где вместо цифр подсказками служат суммы' },
 };
 const SHELL_KEY = 'logicgames-dalya-v1';
 let current = 'suguru';
@@ -2010,7 +2782,7 @@ function switchTo(id) {
   current = id;
   for (const k in GAMES) $('screen-' + k).hidden = k !== id;
   const g = GAMES[id];
-  $('brandTitle').innerHTML = `${g.title}<span>.</span>`;
+  $('brandTitle').innerHTML = `${g.brand || g.title}<span>.</span>`;
   $('brandSize').textContent = g.size;
   document.title = `${g.title} для Дали`;
   if (!Profiles.locked) try { localStorage.setItem(Profiles.key(SHELL_KEY), JSON.stringify({ current })); } catch (e) {}

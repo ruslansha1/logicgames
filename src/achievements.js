@@ -62,6 +62,8 @@ const Track = (() => {
     if (ok) { g.correct++; st.run++; st.bestRun = Math.max(st.bestRun, st.run); } else { g.wrong++; st.run = 0; }
     day(); check(); save();
   }
+  // счётчики, которые нужны только достижениям отдельной игры
+  function bump(gid, key, by = 1) { const g = G(gid); g.extra = g.extra || {}; g.extra[key] = (g.extra[key] || 0) + by; check(); save(); }
   function hint(gid) { G(gid).hints++; check(); save(); }
   function tick(gid) { G(gid).time++; if (++ticks % 15 === 0) { check(); save(); } }
   function win(gid, { lvl, elapsed, hints, mistakes }) {
@@ -71,6 +73,7 @@ const Track = (() => {
     if (record) g.best[lvl] = elapsed;
     if (!mistakes) g.clean++;
     if (!hints) g.solo++;
+    if (!hints && !mistakes) { g.perfect = g.perfect || {}; g.perfect[lvl] = (g.perfect[lvl] || 0) + 1; }
     const h = new Date().getHours();
     if (h < 5) st.flags.owl = 1;
     if (h >= 5 && h < 8) st.flags.lark = 1;
@@ -113,6 +116,7 @@ const Track = (() => {
           val: () => Math.min(g().best.medium || Infinity, g().best.hard || Infinity),
           desc: t => `Реши среднюю или сложную быстрее ${fmt(t)} без подсказок` },
       );
+      if (m.extra) list.push(...m.extra(g, n).map(d => Object.assign({ game: gid }, d)));
     }
     list.push({ id: 'collector', icon: 'star', title: 'Коллекционер', tiers: [5, 15, 30], val: () => Object.entries(st.ach).reduce((a, [k, v]) => a + (k === 'collector' ? 0 : v.tier), 0), desc: t => `Открой ${n(t, 'уровень', 'уровня', 'уровней')} других достижений` });
     return list;
@@ -151,6 +155,8 @@ const Track = (() => {
     heart: '<path d="M12 20.5s-8-4.8-8-10.8a4.4 4.4 0 0 1 8-2.6 4.4 4.4 0 0 1 8 2.6c0 6-8 10.8-8 10.8Z"/>',
     crown: '<path d="m3 7.5 4.5 4.5L12 5l4.5 7L21 7.5 19 19H5Z"/><path d="M5 19h14"/>',
     bolt: '<path d="M13.5 2 4.5 13.5h6.5L10 22l9.5-12H13Z"/>',
+    calc: '<rect x="5" y="2.5" width="14" height="19" rx="2.5"/><path d="M8.5 6.5h7M9 11v4M7 13h4M13.5 12h3M13.5 15h3M8 18.5h0M12 18.5h0M16 18.5h0"/>',
+    snow: '<path d="M12 2.5v19M3.8 7.2l16.4 9.6M3.8 16.8l16.4-9.6M9.5 4l2.5 2.5L14.5 4M9.5 20l2.5-2.5 2.5 2.5M3.4 10.3l3.4.9-.9 3.4M20.6 13.7l-3.4-.9.9-3.4M5.9 9.4l.9-3.4 3.4.9M18.1 14.6l-.9 3.4-3.4-.9"/>',
     star: '<path d="m12 2.8 2.8 5.8 6.3.9-4.6 4.4 1.1 6.3L12 17.2l-5.6 3 1.1-6.3-4.6-4.4 6.3-.9Z"/>',
   };
   // зубчатый край медали
@@ -347,5 +353,5 @@ const Track = (() => {
   addEventListener('pagehide', save);
   addEventListener('lg-save', save);
   document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
-  return { register, seed, start, move, hint, tick, win, wins: gid => winsOf(G(gid)), initUI, refresh: renderAvatar, profile, showcase };
+  return { register, seed, start, move, bump, hint, tick, win, wins: gid => winsOf(G(gid)), initUI, refresh: renderAvatar, profile, showcase };
 })();

@@ -2,6 +2,7 @@
 const GAMES = {
   suguru: { app: SuguruApp, title: 'Сугуру', size: '9×9', about: 'Области с числами, одинаковые не касаются' },
   sudoku: { app: SudokuApp, title: 'Судоку', size: '12×12', about: 'Числа 1–12 в строках, столбцах и блоках' },
+  killer: { app: KillerApp, title: 'Киллер-судоку', brand: 'Киллер', size: '9×9', about: 'Судоку, где вместо цифр подсказками служат суммы' },
 };
 const SHELL_KEY = 'logicgames-dalya-v1';
 let current = 'suguru';
@@ -11,7 +12,7 @@ function switchTo(id) {
   current = id;
   for (const k in GAMES) $('screen-' + k).hidden = k !== id;
   const g = GAMES[id];
-  $('brandTitle').innerHTML = `${g.title}<span>.</span>`;
+  $('brandTitle').innerHTML = `${g.brand || g.title}<span>.</span>`;
   $('brandSize').textContent = g.size;
   document.title = `${g.title} для Дали`;
   if (!Profiles.locked) try { localStorage.setItem(Profiles.key(SHELL_KEY), JSON.stringify({ current })); } catch (e) {}
