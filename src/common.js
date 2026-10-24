@@ -9,7 +9,11 @@ const HintGate = {
 
 // ===== Общее для всех игр =====
 const $ = id => document.getElementById(id);
-const PRAISE = ['Даля, ты умница!', 'Блестяще, Даля!', 'Ещё одна покорена!', 'Вот это голова!', 'Красиво решено!'];
+const praise = () => {
+  const name = Profiles.esc(Profiles.active().name);
+  const list = [`${name}, ты умница!`, `Блестяще, ${name}!`, 'Ещё одна покорена!', 'Вот это голова!', 'Красиво решено!'];
+  return list[Math.random() * list.length | 0];
+};
 const fmt = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
 // ===== Шторка =====

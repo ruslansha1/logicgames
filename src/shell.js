@@ -14,13 +14,13 @@ function switchTo(id) {
   $('brandTitle').innerHTML = `${g.title}<span>.</span>`;
   $('brandSize').textContent = g.size;
   document.title = `${g.title} для Дали`;
-  try { localStorage.setItem(SHELL_KEY, JSON.stringify({ current })); } catch (e) {}
+  if (!Profiles.locked) try { localStorage.setItem(Profiles.key(SHELL_KEY), JSON.stringify({ current })); } catch (e) {}
   g.app.show();
 }
 
 function pickGame() {
   $('gameBtn').classList.remove('fresh');
-  try { localStorage.setItem(SHELL_KEY + '-picker', '1'); } catch (e) {}
+  try { localStorage.setItem(Profiles.key(SHELL_KEY + '-picker'), '1'); } catch (e) {}
   const root = $('sheetRoot');
   const items = Object.entries(GAMES).map(([k, g]) => `
     <button class="game-card" data-game="${k}" aria-pressed="${k === current}">
@@ -36,7 +36,7 @@ function pickGame() {
   root.querySelector('.sheet-back').addEventListener('pointerdown', e => { if (e.target.classList.contains('sheet-back')) close(); });
 }
 
-function initShell() {
+async function initShell() {
   $('gameBtn').onclick = pickGame;
   $('rulesBtn').onclick = () => GAMES[current].app.rules();
   document.addEventListener('keydown', e => {
@@ -44,9 +44,12 @@ function initShell() {
     GAMES[current].app.keydown(e);
   });
   setInterval(() => { if (!document.hidden) GAMES[current].app.tick(); }, 1000);
-  try { if (!localStorage.getItem(SHELL_KEY + '-picker')) $('gameBtn').classList.add('fresh'); } catch (e) {}
+  Track.initUI();
+  await Profiles.welcome();
+  Track.refresh();
+  try { if (!localStorage.getItem(Profiles.key(SHELL_KEY + '-picker'))) $('gameBtn').classList.add('fresh'); } catch (e) {}
   let saved = 'suguru';
-  try { saved = (JSON.parse(localStorage.getItem(SHELL_KEY) || 'null') || {}).current || saved; } catch (e) {}
+  try { saved = (JSON.parse(localStorage.getItem(Profiles.key(SHELL_KEY)) || 'null') || {}).current || saved; } catch (e) {}
   switchTo(saved);
 }
 initShell();

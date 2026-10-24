@@ -5,19 +5,19 @@ const SudokuApp = (() => {
   const LVL_NAME = { easy: 'Лёгкая', medium: 'Средняя', hard: 'Сложная' };
 
   let S = null;      // текущая партия
-  let stats = { solved: { easy: 0, medium: 0, hard: 0 }, best: {} };
   let level = 'medium';
   let cells = [], padBtns = [];
   let notesMode = false;
 
   function load() {
     try {
-      const d = JSON.parse(localStorage.getItem(KEY) || 'null');
-      if (d) { stats = d.stats || stats; level = d.level || level; if (d.game && d.game.p) S = d.game; }
+      const d = JSON.parse(localStorage.getItem(Profiles.key(KEY)) || 'null');
+      if (d) { level = d.level || level; if (d.game && d.game.p) S = d.game; if (d.stats) Track.seed('sudoku', d.stats); }
     } catch (e) {}
   }
   function save() {
-    try { localStorage.setItem(KEY, JSON.stringify({ stats, level, game: S })); } catch (e) {}
+    if (Profiles.locked) return;
+    try { localStorage.setItem(Profiles.key(KEY), JSON.stringify({ level, game: S })); } catch (e) {}
   }
 
   function newGame(lvl = level) {
@@ -25,9 +25,9 @@ const SudokuApp = (() => {
     $('sdLoading').hidden = false;
     setTimeout(() => {
       const p = E.generate(lvl);
-      S = { p, vals: p.givens.slice(), notes: new Array(C).fill(0), elapsed: 0, hints: 0, done: false, sel: -1, history: [] };
+      S = { p, vals: p.givens.slice(), notes: new Array(C).fill(0), elapsed: 0, hints: 0, mistakes: 0, done: false, sel: -1, history: [] };
       $('sdLoading').hidden = true;
-      setup(); save();
+      setup(); save(); Track.start('sudoku');
     }, 30);
   }
 
@@ -78,14 +78,12 @@ const SudokuApp = (() => {
 
   function render() {
     const bad = conflicts(), sel = S.sel, selVal = sel >= 0 ? S.vals[sel] : 0;
-    const sr = sel >= 0 ? E.rowOf(sel) : -1, sc = sel >= 0 ? E.colOf(sel) : -1, sb = sel >= 0 ? E.boxOf(sel) : -1;
     const count = new Array(N + 1).fill(0);
     for (let i = 0; i < C; i++) {
       const d = cells[i], v = S.vals[i];
       if (v) count[v]++;
       d.classList.toggle('given', !!S.p.givens[i]);
       d.classList.toggle('sel', i === sel);
-      d.classList.toggle('area', sel >= 0 && i !== sel && (E.rowOf(i) === sr || E.colOf(i) === sc || E.boxOf(i) === sb));
       d.classList.toggle('same', sel >= 0 && i !== sel && !!selVal && v === selVal);
       d.classList.toggle('bad', bad.has(i) && !S.p.givens[i]);
       d.classList.toggle('two', v > 9);
@@ -102,7 +100,7 @@ const SudokuApp = (() => {
     padBtns.forEach((b, k) => { b.disabled = locked; b.classList.toggle('full', count[k + 1] >= N); });
     $('sdPad').classList.toggle('noting', notesMode);
     $('sdHints').textContent = S.hints;
-    $('sdSolved').textContent = stats.solved.easy + stats.solved.medium + stats.solved.hard;
+    $('sdSolved').textContent = Track.wins('sudoku');
     $('sdTimer').textContent = fmt(S.elapsed);
   }
 
@@ -121,6 +119,7 @@ const SudokuApp = (() => {
       S.notes[i] ^= 1 << (n - 1);
     } else {
       S.vals[i] = S.vals[i] === n ? 0 : n;
+      if (S.vals[i]) { const ok = n === S.p.solution[i]; if (!ok) S.mistakes = (S.mistakes || 0) + 1; Track.move('sudoku', ok); }
       if (S.vals[i]) for (const p of E.PEERS[i]) S.notes[p] &= ~(1 << (n - 1));
     }
     afterMove();
@@ -142,9 +141,9 @@ const SudokuApp = (() => {
   // ===== Подсказки =====
   async function askHint() {
     if (S.done) return;
-    const go = await sheet({ title: HintGate.title, body: `<p>${HintGate.text}</p>`, ok: 'Получить подсказку', cancel: 'Сама справлюсь' });
+    const go = await sheet({ title: HintGate.title, body: `<p>${HintGate.text}</p>`, ok: 'Получить подсказку', cancel: Profiles.G('Сама справлюсь', 'Сам справлюсь') });
     if (!go || !(await HintGate.request())) return;
-    S.hints++; save(); render();
+    S.hints++; Track.hint('sudoku'); save(); render();
     showHint();
   }
 
@@ -187,7 +186,7 @@ const SudokuApp = (() => {
       text = `Здесь стоит ${SYM[v]}.`;
     }
     S.sel = i; render(); flash(i);
-    sheet({ title: 'Подсказка', body: `<p>${text}</p>`, ok: `Поставить ${SYM[v]}`, cancel: 'Дальше сама' })
+    sheet({ title: 'Подсказка', body: `<p>${text}</p>`, ok: `Поставить ${SYM[v]}`, cancel: Profiles.G('Дальше сама', 'Дальше сам') })
       .then(ok => { if (ok && !S.done) { snapshot(); S.vals[i] = v; afterMove(); } });
   }
 
@@ -219,18 +218,16 @@ const SudokuApp = (() => {
 
   function win() {
     S.done = true;
-    stats.solved[S.p.difficulty] = (stats.solved[S.p.difficulty] || 0) + 1;
-    const best = stats.best[S.p.difficulty];
-    const record = !S.hints && (!best || S.elapsed < best);
-    if (record) stats.best[S.p.difficulty] = S.elapsed;
+    const { record } = Track.win('sudoku', { lvl: S.p.difficulty, elapsed: S.elapsed, hints: S.hints, mistakes: S.mistakes || 0 });
     save(); render(); hearts();
     sheet({
       cls: 'win',
-      title: PRAISE[Math.random() * PRAISE.length | 0],
+      title: praise(),
       body: `<div class="stats">
         <div><span>Время</span><b>${fmt(S.elapsed)}</b></div>
         <div><span>Уровень</span><b>${LVL_NAME[S.p.difficulty]}</b></div>
-        <div><span>Подсказок</span><b>${S.hints}</b></div></div>
+        <div><span>Подсказок</span><b>${S.hints}</b></div>
+        <div><span>Ошибок</span><b>${S.mistakes || 0}</b></div></div>
         ${record ? '<p class="muted">Новый рекорд без подсказок на этом уровне.</p>' : ''}`,
       ok: 'Ещё одну', cancel: 'Полюбоваться',
     }).then(ok => { if (ok) newGame(S.p.difficulty); });
@@ -276,15 +273,19 @@ const SudokuApp = (() => {
     }
   }
   function tick() {
-    if (S && !S.done && $('sdLoading').hidden) { S.elapsed++; $('sdTimer').textContent = fmt(S.elapsed); if (S.elapsed % 10 === 0) save(); }
+    if (S && !S.done && $('sdLoading').hidden) { S.elapsed++; Track.tick('sudoku'); $('sdTimer').textContent = fmt(S.elapsed); if (S.elapsed % 10 === 0) save(); }
   }
   let shown = false;
   function show() {
     if (shown) return;
     shown = true; bind();
     if (S) { S.sel = -1; setup(); } else newGame(level);
-    try { if (!localStorage.getItem(KEY + '-seen')) { localStorage.setItem(KEY + '-seen', '1'); rules(); } } catch (e) {}
+    try { if (!localStorage.getItem(Profiles.key(KEY + '-seen'))) { localStorage.setItem(Profiles.key(KEY + '-seen'), '1'); rules(); } } catch (e) {}
   }
   load();
-  return { show, tick, keydown, rules, solved: () => stats.solved.easy + stats.solved.medium + stats.solved.hard };
+  Track.register('sudoku', { title: 'Судоку 12×12', speed: [2100, 1380, 900] });
+  addEventListener('pagehide', () => S && save());
+  addEventListener('lg-save', () => S && save());
+  document.addEventListener('visibilitychange', () => { if (document.hidden && S) save(); });
+  return { show, tick, keydown, rules, solved: () => Track.wins('sudoku') };
 })();

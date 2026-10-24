@@ -27,9 +27,9 @@
   --accent-soft: #fae1ea;
   --user: #5b45d1;
   --error: #d1343f;
-  --sel: #e4ddff;
+  --sel: #cdbfff;
   --area: #f4f1ff;
-  --same: #efe9ff;
+  --same: #ded3ff;
   --shadow: 0 1px 2px rgba(31,27,58,.08), 0 8px 24px rgba(31,27,58,.08);
   --f-display: "Unbounded", "Avenir Next", system-ui, sans-serif;
   --f-body: "Manrope", -apple-system, "Segoe UI", system-ui, sans-serif;
@@ -37,14 +37,14 @@
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
   --paper: #14122a; --surface: #1d1a37; --ink: #ece9fc; --muted: #9a94bd; --line: #38335c;
   --accent: #ff7aa6; --accent-soft: #46203a; --user: #ab9dff; --error: #ff6b74;
-  --sel: #3a3270; --area: #232046; --same: #2c2758;
+  --sel: #5747b8; --area: #232046; --same: #40368a;
   --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
   color-scheme: dark;
 } }
 :root[data-theme="dark"] {
   --paper: #14122a; --surface: #1d1a37; --ink: #ece9fc; --muted: #9a94bd; --line: #38335c;
   --accent: #ff7aa6; --accent-soft: #46203a; --user: #ab9dff; --error: #ff6b74;
-  --sel: #3a3270; --area: #232046; --same: #2c2758;
+  --sel: #5747b8; --area: #232046; --same: #40368a;
   --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
   color-scheme: dark;
 }
@@ -66,10 +66,10 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   padding-block: 12px 16px;
 }
 header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.brand { display: flex; flex-direction: column; line-height: 1.1; }
+.brand { display: flex; flex-direction: column; line-height: 1.1; min-width: 0; }
 .brand h1 { font-family: var(--f-display); font-weight: 700; font-size: 26px; letter-spacing: -.02em; margin: 0; }
 .brand h1 span { color: var(--accent); }
-.brand small { color: var(--muted); font-size: 12px; letter-spacing: .04em; margin-top: 3px; }
+.brand small { color: var(--muted); font-size: 12px; letter-spacing: .01em; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .icon-btn {
   width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface);
   display: grid; place-items: center; font-weight: 700; font-size: 17px;
@@ -138,13 +138,13 @@ svg.lines .frame { fill: none; stroke: var(--ink); stroke-width: .15; }
 .rule { display: grid; grid-template-columns: 64px 1fr; gap: 12px; align-items: center; }
 .rule svg { width: 64px; height: 64px; }
 .win h2 { font-size: 26px; }
-.win .stats { display: flex; gap: 18px; font-variant-numeric: tabular-nums; }
+.win .stats { display: grid; grid-template-columns: repeat(4, auto); justify-content: space-between; gap: 10px; font-variant-numeric: tabular-nums; }
 .win .stats div { display: flex; flex-direction: column; }
-.win .stats span { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
+.win .stats span { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
 .win .stats b { font-family: var(--f-display); font-size: 22px; font-weight: 500; }
 canvas.hearts { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 30; }
 /* Переключатель игр */
-.head-btns { display: flex; gap: 8px; }
+.head-btns { display: flex; gap: 6px; flex: none; }
 .games-btn {
   height: 40px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); padding: 0 12px 0 10px;
   display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 13px; position: relative;
@@ -184,7 +184,201 @@ canvas.hearts { position: fixed; inset: 0; width: 100%; height: 100%; pointer-ev
 .pad.sd button { height: 48px; font-size: 21px; letter-spacing: -.03em; }
 .pad.sd.noting button { font-size: 16px; }
 .pad.sd button.full:not(:disabled) { opacity: .4; box-shadow: none; }
-@media (prefers-reduced-motion: reduce) { .cell.hint, .sheet { animation: none; } .pad button { transition: none; } }
+/* Профиль */
+.avatar-btn { width: 40px; height: 40px; border-radius: 50%; border: 0; background: transparent; padding: 0; display: grid; place-items: center; position: relative; }
+.avatar-btn.dot::after { content: ""; position: absolute; top: 0; right: 0; width: 11px; height: 11px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--paper); animation: blink 1.6s ease-in-out infinite; }
+@keyframes blink { 50% { transform: scale(.7); } }
+.avatar {
+  --c: var(--accent); width: 38px; height: 38px; border-radius: 50%; display: inline-grid; place-items: center; flex: none;
+  background: var(--area); background: color-mix(in srgb, var(--c) 16%, var(--surface)); box-shadow: inset 0 0 0 2px var(--c);
+  font-size: 20px; line-height: 1; font-family: "Apple Color Emoji", "Segoe UI Emoji", sans-serif;
+}
+.avatar.big { width: 68px; height: 68px; font-size: 36px; box-shadow: inset 0 0 0 3px var(--c), 0 6px 18px color-mix(in srgb, var(--c) 30%, transparent); }
+.avatar.add { font-family: var(--f-display); font-size: 20px; color: var(--muted); box-shadow: inset 0 0 0 2px var(--line); background: transparent; }
+.sheet.panel > *, .sheet.pf-edit > * { flex-shrink: 0; }
+.sheet.panel { max-height: 92svh; overflow-y: auto; -webkit-overflow-scrolling: touch; position: relative; gap: 14px; overscroll-behavior: contain; }
+.panel-close { position: absolute; top: 14px; right: 14px; width: 34px; height: 34px; border-radius: 50%; border: 0; background: var(--area); color: var(--muted); font-size: 22px; line-height: 1; display: grid; place-items: center; z-index: 2; }
+.sheet .small { font-size: 12px; text-align: center; }
+.pf-top { display: flex; align-items: center; gap: 14px; padding-right: 40px; }
+.pf-top h2 { font-size: 24px; overflow-wrap: anywhere; }
+.link { border: 0; background: none; padding: 4px 0 0; color: var(--user); font-weight: 600; font-size: 13px; }
+.pf-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.pf-stats div { background: var(--area); border-radius: 14px; padding: 10px 8px; display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; }
+.pf-stats b { font-family: var(--f-display); font-weight: 500; font-size: 19px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pf-stats b i { font-style: normal; color: var(--muted); font-size: 13px; }
+.pf-stats small { color: var(--muted); font-size: 11px; line-height: 1.2; }
+.pf-showcase {
+  display: flex; align-items: center; gap: 12px; text-align: left; border: 0; border-radius: 18px; padding: 12px 14px; color: #fff;
+  background: linear-gradient(135deg, #2b2160, #5b45d1 55%, #d6457a); box-shadow: 0 8px 24px rgba(91,69,209,.3); position: relative; overflow: hidden;
+}
+.pf-showcase::before { content: ""; position: absolute; inset: 0; background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,.22) 50%, transparent 65%); transform: translateX(-100%); animation: sweep 3.5s ease-in-out infinite; }
+@keyframes sweep { 60%, 100% { transform: translateX(100%); } }
+.pf-show-medals { display: flex; flex: none; }
+.pf-show-medals .medal { width: 38px; height: 38px; margin-right: -12px; filter: drop-shadow(0 2px 3px rgba(0,0,0,.3)); }
+.pf-show-medals .medal:last-child { margin-right: 0; }
+.pf-show-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; padding-left: 6px; }
+.pf-show-txt b { font-family: var(--f-display); font-weight: 700; font-size: 15px; }
+.pf-show-txt small { opacity: .85; font-size: 12px; }
+.pf-show-txt em { white-space: nowrap; font-style: normal; background: rgba(255,255,255,.25); border-radius: 99px; padding: 0 6px; }
+.chev { font-size: 28px; opacity: .8; }
+.sc-group { font-family: var(--f-display); font-weight: 500; font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin: 6px 0 -4px; }
+.pf-game { border: 1px solid var(--line); border-radius: 16px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.pf-game-h { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.pf-game-h b { font-family: var(--f-display); font-weight: 700; font-size: 15px; }
+.pf-game-h span { color: var(--muted); font-size: 12px; }
+.pf-lv { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.pf-lv div { display: flex; flex-direction: column; align-items: center; gap: 1px; background: var(--area); border-radius: 10px; padding: 6px 2px; }
+.pf-lv small { color: var(--muted); font-size: 11px; }
+.pf-lv b { font-family: var(--f-display); font-weight: 500; font-size: 17px; }
+.pf-lv span { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.pf-list { display: flex; flex-direction: column; gap: 6px; }
+.pf-row { display: flex; align-items: center; gap: 12px; border: 1px solid var(--line); background: var(--surface); border-radius: 14px; padding: 8px 12px; text-align: left; }
+.pf-row span:nth-child(2) { flex: 1; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pf-row em { font-style: normal; color: var(--muted); font-size: 12px; }
+.pf-row[aria-pressed="true"] { border-color: var(--user); box-shadow: inset 0 0 0 1px var(--user); }
+.pf-row[aria-pressed="true"] em { color: var(--user); font-weight: 600; }
+.pf-row.add { border-style: dashed; color: var(--muted); }
+/* Окно профиля */
+.pf-preview { display: flex; justify-content: center; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field > span { font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+.field input {
+  font: inherit; font-size: 17px; font-weight: 600; color: var(--ink); background: var(--area); border: 1px solid var(--line); border-radius: 12px; padding: 11px 12px;
+  -webkit-user-select: text; user-select: text; outline: none;
+}
+.field input:focus { border-color: var(--user); }
+.field input.shake { animation: shake .35s; border-color: var(--error); }
+@keyframes shake { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+.field .seg { flex: none; }
+.pf-avatars { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+.pf-avatars button { aspect-ratio: 1; border: 1px solid var(--line); background: var(--surface); border-radius: 12px; font-size: 22px; padding: 0; font-family: "Apple Color Emoji", "Segoe UI Emoji", sans-serif; }
+.pf-avatars button[aria-pressed="true"] { border-color: var(--user); background: var(--sel); box-shadow: inset 0 0 0 1px var(--user); }
+.pf-colors { display: flex; gap: 10px; }
+.pf-colors button { width: 34px; height: 34px; border-radius: 50%; border: 0; background: var(--c); padding: 0; }
+.pf-colors button[aria-pressed="true"] { box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px var(--c); }
+.pf-delete { border: 0; background: none; color: var(--error); font-weight: 600; font-size: 13px; padding: 4px; }
+.sheet.pf-edit { max-height: 94svh; overflow-y: auto; }
+
+/* Медали */
+.medal { display: block; overflow: visible; }
+.medal .m-icon { fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.medal .m-ring { fill: none; stroke-width: 1; }
+.m-locked .m-rim { fill: var(--area); stroke: var(--line); stroke-width: 1; stroke-dasharray: 2 2; }
+.m-locked .m-face { fill: var(--surface); }
+.m-locked .m-ring { stroke: var(--line); }
+.m-locked .m-gloss { display: none; }
+.m-locked .m-icon { stroke: var(--muted); opacity: .5; }
+.m-bronze .m-rim { fill: url(#gBronzeR); } .m-bronze .m-face { fill: url(#gBronzeF); } .m-bronze .m-icon { stroke: #fff8f0; }
+.m-silver .m-rim { fill: url(#gSilverR); } .m-silver .m-face { fill: url(#gSilverF); } .m-silver .m-icon { stroke: #4a5068; }
+.m-gold .m-rim { fill: url(#gGoldR); } .m-gold .m-face { fill: url(#gGoldF); } .m-gold .m-icon { stroke: #7a4500; }
+.m-diamond .m-rim { fill: url(#gDiamondR); } .m-diamond .m-face { fill: url(#gDiamondF); } .m-diamond .m-icon { stroke: #fff; }
+.medal:not(.m-locked) .m-ring { stroke: rgba(255,255,255,.55); }
+.medal:not(.m-locked) .m-gloss { fill: #fff; opacity: .35; }
+.medal:not(.m-locked) { filter: drop-shadow(0 3px 5px rgba(31,27,58,.22)); }
+
+/* Витрина */
+.sc-head { display: flex; align-items: center; gap: 14px; padding-right: 40px; }
+.sc-head h2 { font-size: 20px; }
+.sc-head p { margin-top: 4px; }
+.sc-ring {
+  width: 74px; height: 74px; border-radius: 50%; flex: none; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative;
+  background: conic-gradient(var(--accent) calc(var(--p) * 1%), var(--line) 0);
+}
+.sc-ring::before { content: ""; position: absolute; inset: 6px; border-radius: 50%; background: var(--surface); }
+.sc-ring b, .sc-ring small { position: relative; }
+.sc-ring b { font-family: var(--f-display); font-size: 20px; font-weight: 700; line-height: 1; }
+.sc-ring small { font-size: 10px; color: var(--muted); }
+.badges { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.badge {
+  display: flex; flex-direction: column; align-items: center; gap: 5px; border: 1px solid var(--line); background: var(--surface);
+  border-radius: 16px; padding: 10px 6px 9px; position: relative; min-width: 0;
+}
+.badge b { font-size: 12px; font-weight: 700; line-height: 1.2; text-align: center; -webkit-hyphens: auto; hyphens: auto; overflow-wrap: anywhere; min-height: 2.4em; display: flex; align-items: center; }
+.badge.locked b { color: var(--muted); }
+.badge-medal { width: 58px; height: 58px; display: block; }
+.badge-medal .medal { width: 100%; height: 100%; }
+.badge.t-bronze { background: linear-gradient(to bottom, color-mix(in srgb, #c06f33 9%, var(--surface)), var(--surface)); }
+.badge.t-silver { background: linear-gradient(to bottom, color-mix(in srgb, #9aa3b8 14%, var(--surface)), var(--surface)); }
+.badge.t-gold { background: linear-gradient(to bottom, color-mix(in srgb, #f5c542 16%, var(--surface)), var(--surface)); }
+.badge.t-diamond { background: linear-gradient(to bottom, color-mix(in srgb, #8a7dff 16%, var(--surface)), var(--surface)); }
+.badge.new::after { content: "новое"; position: absolute; top: 6px; right: 6px; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: #fff; background: var(--accent); border-radius: 99px; padding: 1px 5px; }
+.badge.new .badge-medal { animation: wiggle 2.4s ease-in-out infinite; }
+@keyframes wiggle { 0%, 70%, 100% { transform: rotate(0) scale(1); } 76% { transform: rotate(-9deg) scale(1.08); } 84% { transform: rotate(8deg) scale(1.08); } 92% { transform: rotate(-3deg); } }
+.badge.focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+.pips { display: flex; gap: 3px; }
+.pips i { width: 7px; height: 7px; border-radius: 50%; background: var(--line); }
+.pips i.on.p-bronze, .tier-dot.p-bronze { background: linear-gradient(#f6c08c, #a55a24); }
+.pips i.on.p-silver, .tier-dot.p-silver { background: linear-gradient(#ffffff, #8790a6); }
+.pips i.on.p-gold, .tier-dot.p-gold { background: linear-gradient(#fff3b0, #d99a10); }
+.pips i.on.p-diamond, .tier-dot.p-diamond { background: linear-gradient(#bff4ff, #8a7dff); }
+.prog { width: 80%; height: 4px; border-radius: 99px; background: var(--line); overflow: hidden; }
+.prog i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--user), var(--accent)); }
+.sc-back { border: 1px solid var(--line); background: var(--surface); border-radius: 14px; padding: 12px; font-weight: 700; margin-top: 4px; }
+
+/* Карточка достижения */
+.ach-detail { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; padding-top: 8px; }
+.ach-big { width: 128px; height: 128px; position: relative; display: block; }
+.ach-big .medal { width: 100%; height: 100%; position: relative; z-index: 1; }
+.ach-detail:not(.locked) .ach-big::before {
+  content: ""; position: absolute; inset: -26px; border-radius: 50%;
+  background: repeating-conic-gradient(from 0deg, color-mix(in srgb, var(--glow) 45%, transparent) 0 8deg, transparent 8deg 22deg);
+  -webkit-mask: radial-gradient(closest-side, #000 40%, transparent); mask: radial-gradient(closest-side, #000 40%, transparent);
+  animation: spin 14s linear infinite;
+}
+.ach-detail.t-bronze { --glow: #e3a066; } .ach-detail.t-silver { --glow: #aab3c8; } .ach-detail.t-gold { --glow: #f5c542; } .ach-detail.t-diamond { --glow: #8fd8ff; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.ach-detail h2 { font-size: 22px; }
+.chip { font-size: 11px; font-weight: 700; color: var(--user); background: var(--sel); border-radius: 99px; padding: 2px 10px; }
+.tiers { list-style: none; padding: 0; margin: 8px 0 0; width: 100%; display: flex; flex-direction: column; gap: 6px; text-align: left; }
+.tiers li { display: flex; align-items: center; gap: 12px; border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; }
+.tiers li > span:nth-child(2) { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.tiers li b { font-size: 14px; }
+.tiers li small { color: var(--muted); font-size: 12px; line-height: 1.35; }
+.tiers li em { font-style: normal; font-size: 12px; font-weight: 700; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.tiers li.done { background: var(--area); }
+.tiers li.done em { color: var(--user); }
+.tier-dot { width: 18px; height: 18px; border-radius: 50%; flex: none; opacity: .35; }
+.tiers li.done .tier-dot { opacity: 1; box-shadow: 0 0 0 3px var(--surface), 0 0 0 4px var(--line); }
+
+/* Уведомление о новом достижении */
+.ach-toast {
+  position: fixed; z-index: 40; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 10px); width: min(calc(100% - 24px), 420px);
+  display: flex; align-items: center; gap: 12px; text-align: left; border: 0; border-radius: 20px; padding: 10px 16px 10px 10px;
+  background: rgba(31,27,58,.94); color: #fff; box-shadow: 0 14px 40px rgba(20,18,42,.35), inset 0 0 0 1px rgba(255,255,255,.12);
+  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+  transform: translate(-50%, calc(-100% - 40px)) scale(.9); opacity: 0;
+  transition: transform .55s cubic-bezier(.2, 1.4, .4, 1), opacity .3s;
+  overflow: hidden;
+}
+.ach-toast.in { transform: translate(-50%, 0) scale(1); opacity: 1; }
+.ach-toast.out { transform: translate(-50%, calc(-100% - 40px)) scale(.95); opacity: 0; transition: transform .4s ease-in, opacity .4s; }
+.ach-toast::before { content: ""; position: absolute; inset: 0; background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,.18) 50%, transparent 70%); transform: translateX(-120%); }
+.ach-toast.in::before { animation: sweep2 1.4s .55s ease-out; }
+@keyframes sweep2 { to { transform: translateX(120%); } }
+.ach-toast.t-gold { box-shadow: 0 14px 40px rgba(20,18,42,.35), inset 0 0 0 1.5px rgba(245,197,66,.7); }
+.ach-toast.t-diamond { box-shadow: 0 14px 40px rgba(20,18,42,.35), inset 0 0 0 1.5px rgba(143,216,255,.75); }
+.ach-toast.t-silver { box-shadow: 0 14px 40px rgba(20,18,42,.35), inset 0 0 0 1.5px rgba(200,207,222,.6); }
+.ach-toast.t-bronze { box-shadow: 0 14px 40px rgba(20,18,42,.35), inset 0 0 0 1.5px rgba(227,160,102,.65); }
+.ach-toast-medal { width: 58px; height: 58px; flex: none; position: relative; }
+.ach-toast-medal .medal { width: 100%; height: 100%; }
+.ach-toast.in .ach-toast-medal { animation: pop .9s cubic-bezier(.2, 1.3, .4, 1) both; }
+@keyframes pop { 0% { transform: scale(.2) rotate(-200deg); } 100% { transform: scale(1) rotate(0); } }
+.ach-toast-medal i { position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px; border-radius: 50%; background: #ffe07a; opacity: 0; }
+.ach-toast.in .ach-toast-medal i { animation: burst .9s .35s ease-out; }
+.ach-toast-medal i:nth-of-type(1) { --dx: 0px; --dy: -38px; }
+.ach-toast-medal i:nth-of-type(2) { --dx: 33px; --dy: -19px; background: #ff7aa6; }
+.ach-toast-medal i:nth-of-type(3) { --dx: 33px; --dy: 19px; background: #ab9dff; }
+.ach-toast-medal i:nth-of-type(4) { --dx: 0px; --dy: 38px; }
+.ach-toast-medal i:nth-of-type(5) { --dx: -33px; --dy: 19px; background: #ff7aa6; }
+.ach-toast-medal i:nth-of-type(6) { --dx: -33px; --dy: -19px; background: #9ff0ff; }
+@keyframes burst { 0% { opacity: 1; transform: translate(0, 0) scale(1); } 100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(.3); } }
+.ach-toast-txt { display: flex; flex-direction: column; gap: 1px; min-width: 0; position: relative; }
+.ach-toast-txt small { font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: #ffd36b; font-weight: 700; }
+.ach-toast.t-diamond small { color: #9ff0ff; } .ach-toast.t-silver small { color: #dfe4ee; } .ach-toast.t-bronze small { color: #f6c08c; }
+.ach-toast-txt b { font-family: var(--f-display); font-size: 16px; font-weight: 700; }
+.ach-toast-txt em { font-style: normal; font-size: 12px; opacity: .8; line-height: 1.3; }
+@media (max-width: 360px) { .badges { gap: 6px; } .badge-medal { width: 50px; height: 50px; } .pf-stats b { font-size: 16px; } .brand h1 { font-size: 22px; } .games-btn { padding: 0 9px 0 8px; } }
+@media (prefers-reduced-motion: reduce) { .cell.hint, .sheet, .badge.new .badge-medal, .ach-toast-medal, .ach-toast-medal i, .ach-detail .ach-big::before, .pf-showcase::before, .avatar-btn.dot::after { animation: none !important; } .pad button, .ach-toast { transition: none; } }
 @media (max-height: 640px) { .pad button { height: 48px; } .pad.sd button { height: 42px; } .app, .screen { gap: 10px; } }
 </style>
 </head>
@@ -198,6 +392,7 @@ canvas.hearts { position: fixed; inset: 0; width: 100%; height: 100%; pointer-ev
     <div class="head-btns">
       <button class="games-btn" id="gameBtn" aria-label="Выбрать игру"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="2"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2"/></svg>Игры</button>
       <button class="icon-btn" id="rulesBtn" aria-label="Правила">?</button>
+      <button class="avatar-btn" id="profileBtn" aria-label="Профиль"></button>
     </div>
   </header>
 
@@ -276,7 +471,11 @@ const HintGate = {
 
 // ===== Общее для всех игр =====
 const $ = id => document.getElementById(id);
-const PRAISE = ['Даля, ты умница!', 'Блестяще, Даля!', 'Ещё одна покорена!', 'Вот это голова!', 'Красиво решено!'];
+const praise = () => {
+  const name = Profiles.esc(Profiles.active().name);
+  const list = [`${name}, ты умница!`, `Блестяще, ${name}!`, 'Ещё одна покорена!', 'Вот это голова!', 'Красиво решено!'];
+  return list[Math.random() * list.length | 0];
+};
 const fmt = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
 // ===== Шторка =====
@@ -320,6 +519,493 @@ function hearts() {
     if (t < 220) requestAnimationFrame(frame); else cv.remove();
   })();
 }
+
+// ===== Профили игроков =====
+// Всё хранится локально на устройстве. Каждый ключ игры получает суффикс @<id профиля>.
+const Profiles = (() => {
+  const KEY = 'logicgames-profiles-v1';
+  // ключи до появления профилей: при первом запуске они переезжают в первый профиль
+  const LEGACY = ['suguru-dalya-v1', 'suguru-dalya-v1-seen', 'sudoku12-dalya-v1', 'sudoku12-dalya-v1-seen', 'logicgames-dalya-v1', 'logicgames-dalya-v1-picker'];
+  const AVATARS = ['🦊', '🐱', '🐼', '🦉', '🐰', '🐻', '🐧', '🦄', '🐢', '🌸', '🍓', '⭐'];
+  const COLORS = ['#d6457a', '#5b45d1', '#1f9d8a', '#e08a1e', '#2f7fd8', '#9b4fd6'];
+  const ls = {
+    get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
+    del(k) { try { localStorage.removeItem(k); } catch (e) {} },
+  };
+  let data = null;
+  // пока true, никто не пишет в хранилище: идёт переключение профиля
+  let locked = false;
+
+  function persist() { ls.set(KEY, JSON.stringify(data)); }
+  function load() {
+    try { data = JSON.parse(ls.get(KEY) || 'null'); } catch (e) {}
+    if (!data || !Array.isArray(data.list) || !data.list.length) {
+      const id = newId();
+      data = { active: id, list: [{ id, name: 'Даля', avatar: '🦊', color: COLORS[0], g: 'f' }], welcomed: false };
+      for (const k of LEGACY) { const v = ls.get(k); if (v !== null && ls.get(k + '@' + id) === null) ls.set(k + '@' + id, v); }
+      persist();
+    }
+    if (!data.list.some(p => p.id === data.active)) data.active = data.list[0].id;
+  }
+  function newId() { return 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5); }
+  const active = () => data.list.find(p => p.id === data.active);
+
+  function reloadAs(id) {
+    window.dispatchEvent(new Event('lg-save'));
+    locked = true;
+    data.active = id; persist();
+    location.reload();
+  }
+  function remove(id) {
+    if (data.list.length < 2) return;
+    const keys = [];
+    try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k.endsWith('@' + id)) keys.push(k); } } catch (e) {}
+    const wasActive = id === data.active;
+    if (wasActive) { window.dispatchEvent(new Event('lg-save')); locked = true; }
+    data.list = data.list.filter(p => p.id !== id);
+    if (wasActive) data.active = data.list[0].id;
+    persist();
+    keys.forEach(k => ls.del(k));
+    if (wasActive) location.reload();
+  }
+
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  // Окно создания и правки профиля. Возвращает данные профиля или null.
+  function editor({ title, intro = '', p = {}, ok = 'Сохранить', canDelete = false }) {
+    return new Promise(resolve => {
+      const cur = { name: p.name || '', avatar: p.avatar || AVATARS[(data.list.length) % AVATARS.length], color: p.color || COLORS[data.list.length % COLORS.length], g: p.g || 'f' };
+      const root = $('sheetRoot');
+      root.innerHTML = `<div class="sheet-back"><div class="sheet pf-edit" role="dialog" aria-modal="true">
+        <h2>${title}</h2>${intro}
+        <div class="pf-preview"><span class="avatar big" id="pfPrev"></span></div>
+        <label class="field"><span>Имя</span><input id="pfName" maxlength="16" autocomplete="off" placeholder="Как тебя зовут?" value="${esc(cur.name)}"></label>
+        <div class="field"><span>Обращаться</span><div class="seg" id="pfG">
+          <button data-g="f">Она</button><button data-g="m">Он</button></div></div>
+        <div class="field"><span>Аватар</span><div class="pf-avatars" id="pfAv">${AVATARS.map(a => `<button data-a="${a}">${a}</button>`).join('')}</div></div>
+        <div class="field"><span>Цвет</span><div class="pf-colors" id="pfCol">${COLORS.map(c => `<button data-c="${c}" style="--c:${c}" aria-label="Цвет"></button>`).join('')}</div></div>
+        <div class="actions"><button id="pfCancel">Отмена</button><button class="primary" id="pfOk">${ok}</button></div>
+        ${canDelete ? '<button class="pf-delete" id="pfDel">Удалить профиль</button>' : ''}
+      </div></div>`;
+      const paint = () => {
+        const prev = $('pfPrev'); prev.textContent = cur.avatar; prev.style.setProperty('--c', cur.color);
+        root.querySelectorAll('#pfAv button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.a === cur.avatar)));
+        root.querySelectorAll('#pfCol button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.c === cur.color)));
+        root.querySelectorAll('#pfG button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.g === cur.g)));
+      };
+      root.querySelectorAll('#pfAv button').forEach(b => b.onclick = () => { cur.avatar = b.dataset.a; paint(); });
+      root.querySelectorAll('#pfCol button').forEach(b => b.onclick = () => { cur.color = b.dataset.c; paint(); });
+      root.querySelectorAll('#pfG button').forEach(b => b.onclick = () => { cur.g = b.dataset.g; paint(); });
+      paint();
+      const close = v => { root.innerHTML = ''; resolve(v); };
+      $('pfOk').onclick = () => {
+        cur.name = $('pfName').value.trim();
+        if (!cur.name) { $('pfName').focus(); $('pfName').classList.add('shake'); setTimeout(() => $('pfName').classList.remove('shake'), 400); return; }
+        close(cur);
+      };
+      $('pfCancel').onclick = () => close(null);
+      if (canDelete) $('pfDel').onclick = () => close('delete');
+    });
+  }
+
+  // При первом запуске: познакомиться и объяснить, что прогресс сохранён
+  async function welcome() {
+    if (data.welcomed) return;
+    const p = active();
+    const res = await editor({
+      title: 'Теперь у каждого свой профиль',
+      intro: '<p class="muted">Победы, точность и достижения считаются для каждого игрока отдельно. Всё, что уже было сыграно на этом телефоне, сохранено в этом профиле.</p>',
+      p, ok: 'Готово',
+    });
+    if (res) Object.assign(p, res);
+    data.welcomed = true; persist();
+  }
+
+  async function add() {
+    const res = await editor({ title: 'Новый игрок', ok: 'Создать' });
+    if (!res) return false;
+    const id = newId();
+    data.list.push({ id, ...res });
+    persist();
+    reloadAs(id);
+    return true;
+  }
+  async function edit() {
+    const p = active();
+    const res = await editor({ title: 'Мой профиль', p, canDelete: data.list.length > 1 });
+    if (res === 'delete') {
+      const ok = await sheet({ title: `Удалить «${esc(p.name)}»?`, body: '<p>Пропадут победы, статистика, достижения и начатые партии этого игрока.</p>', ok: 'Удалить', cancel: 'Оставить' });
+      if (ok) remove(p.id);
+      return false;
+    }
+    if (res) { Object.assign(p, res); persist(); }
+    return !!res;
+  }
+
+  load();
+  return {
+    key: base => base + '@' + data.active,
+    active, list: () => data.list, switchTo: id => id !== data.active && reloadAs(id),
+    add, edit, welcome, esc,
+    get locked() { return locked; },
+    // слово в нужном роде: G('сама', 'сам')
+    G: (f, m) => (active().g === 'm' ? m : f),
+    avatar: (p = active(), cls = '') => `<span class="avatar ${cls}" style="--c:${p.color}">${p.avatar}</span>`,
+  };
+})();
+
+// ===== Статистика и достижения =====
+// Игры сообщают о событиях через Track: start, move, hint, tick, win.
+// Новая игра подключается одной строкой Track.register(id, { title, speed }) и сразу
+// попадает в общую статистику, получает свои достижения и раздел в витрине.
+const plural = (n, one, few, many) => {
+  const a = Math.abs(n) % 100, b = a % 10;
+  return a > 10 && a < 20 ? many : b === 1 ? one : b >= 2 && b <= 4 ? few : many;
+};
+const LEVELS = { easy: 'Лёгкая', medium: 'Средняя', hard: 'Сложная' };
+
+const Track = (() => {
+  const META = {};   // зарегистрированные игры, в порядке подключения
+  const KEY = () => Profiles.key('logicgames-stats');
+  let st = null, ticks = 0;
+  const blank = () => ({ games: {}, days: { last: '', streak: 0, best: 0, count: 0 }, run: 0, bestRun: 0, flags: {}, ach: {}, seen: {}, init: false });
+  const gblank = () => ({ wins: {}, best: {}, started: 0, correct: 0, wrong: 0, hints: 0, time: 0, clean: 0, solo: 0 });
+
+  function load() {
+    let d = null;
+    try { d = JSON.parse(localStorage.getItem(KEY()) || 'null'); } catch (e) {}
+    st = Object.assign(blank(), d || {});
+  }
+  function save() { if (Profiles.locked) return; try { localStorage.setItem(KEY(), JSON.stringify(st)); } catch (e) {} }
+  const G = gid => st.games[gid] || (st.games[gid] = gblank());
+
+  // ----- сводные величины -----
+  const sumG = f => Object.values(st.games).reduce((a, g) => a + f(g), 0);
+  const winsOf = g => Object.values(g.wins).reduce((a, b) => a + b, 0);
+  const total = {
+    wins: () => sumG(winsOf),
+    hard: () => sumG(g => g.wins.hard || 0),
+    correct: () => sumG(g => g.correct),
+    wrong: () => sumG(g => g.wrong),
+    hints: () => sumG(g => g.hints),
+    time: () => sumG(g => g.time),
+    clean: () => sumG(g => g.clean),
+    solo: () => sumG(g => g.solo),
+    played: () => Object.values(st.games).filter(g => winsOf(g) > 0).length,
+  };
+  const accuracy = (c, w) => (c + w ? Math.round(c / (c + w) * 100) : null);
+
+  function today(off = 0) { const d = new Date(); d.setDate(d.getDate() + off); return d.toLocaleDateString('sv'); }
+  function day() {
+    const t = today(), D = st.days;
+    if (D.last === t) return;
+    D.streak = D.last === today(-1) ? D.streak + 1 : 1;
+    D.best = Math.max(D.best, D.streak); D.count++; D.last = t;
+  }
+
+  // ----- события от игр -----
+  function register(id, meta) { META[id] = meta; }
+  function seed(gid, old) {
+    // перенос побед и рекордов, которые игры хранили сами до появления профилей
+    const g = G(gid);
+    for (const [l, n] of Object.entries(old.solved || {})) g.wins[l] = Math.max(g.wins[l] || 0, n);
+    for (const [l, t] of Object.entries(old.best || {})) if (t && (!g.best[l] || t < g.best[l])) g.best[l] = t;
+    save();
+  }
+  function start(gid) { G(gid).started++; save(); }
+  function move(gid, ok) {
+    const g = G(gid);
+    if (ok) { g.correct++; st.run++; st.bestRun = Math.max(st.bestRun, st.run); } else { g.wrong++; st.run = 0; }
+    day(); check(); save();
+  }
+  function hint(gid) { G(gid).hints++; check(); save(); }
+  function tick(gid) { G(gid).time++; if (++ticks % 15 === 0) { check(); save(); } }
+  function win(gid, { lvl, elapsed, hints, mistakes }) {
+    const g = G(gid);
+    g.wins[lvl] = (g.wins[lvl] || 0) + 1;
+    const record = !hints && (!g.best[lvl] || elapsed < g.best[lvl]);
+    if (record) g.best[lvl] = elapsed;
+    if (!mistakes) g.clean++;
+    if (!hints) g.solo++;
+    const h = new Date().getHours();
+    if (h < 5) st.flags.owl = 1;
+    if (h >= 5 && h < 8) st.flags.lark = 1;
+    day(); check(); save();
+    return { record };
+  }
+
+  // ----- достижения -----
+  const TIERS = { bronze: 'Бронза', silver: 'Серебро', gold: 'Золото', diamond: 'Бриллиант' };
+  const tierNames = n => [['gold'], ['silver', 'gold'], ['bronze', 'silver', 'gold'], ['bronze', 'silver', 'gold', 'diamond']][n - 1];
+  const hm = s => (s >= 3600 ? `${Math.floor(s / 3600)} ч ${Math.floor(s % 3600 / 60)} мин` : `${Math.floor(s / 60)} мин`);
+  const n = (v, a, b, c) => `${v} ${plural(v, a, b, c)}`;
+
+  function defs() {
+    const games = Object.keys(META);
+    const list = [
+      { id: 'first', icon: 'flag', title: 'Первая победа', tiers: [1], val: total.wins, desc: () => 'Реши первую головоломку' },
+      { id: 'wins', icon: 'trophy', title: 'Победитель', tiers: [10, 50, 150, 500], val: total.wins, desc: t => `Реши ${n(t, 'головоломку', 'головоломки', 'головоломок')}` },
+      { id: 'hard', icon: 'mountain', title: 'Покоритель вершин', tiers: [10, 50, 150], val: total.hard, desc: t => `Победи ${n(t, 'раз', 'раза', 'раз')} на сложной сложности` },
+      { id: 'correct', icon: 'target', title: 'Меткий глаз', tiers: [100, 500, 2000, 10000], val: total.correct, desc: t => `Правильно поставь ${n(t, 'число', 'числа', 'чисел')}` },
+      { id: 'run', icon: 'spark', title: 'Безупречная серия', tiers: [25, 60, 120], val: () => st.bestRun, desc: t => `${n(t, 'верный ход', 'верных хода', 'верных ходов')} подряд, без единой ошибки` },
+      { id: 'accuracy', icon: 'scope', title: 'Снайпер', tiers: [85, 92, 97], unit: '%', min: 200,
+        val: () => (total.correct() + total.wrong() >= 200 ? accuracy(total.correct(), total.wrong()) : 0),
+        desc: t => `Точность ${t}% и выше (считается после 200 ходов)` },
+      { id: 'clean', icon: 'shield', title: 'Без единой ошибки', tiers: [1, 10, 50], val: total.clean, desc: t => `Реши ${n(t, 'головоломку', 'головоломки', 'головоломок')} без неверных ходов` },
+      { id: 'solo', icon: 'bulb', title: 'Своими силами', tiers: [5, 25, 100], val: total.solo, desc: t => `Реши ${n(t, 'головоломку', 'головоломки', 'головоломок')} без подсказок` },
+      { id: 'streak', icon: 'flame', title: 'Постоянство', tiers: [3, 7, 30], val: () => st.days.best, desc: t => `Играй ${n(t, 'день', 'дня', 'дней')} подряд` },
+      { id: 'time', icon: 'hourglass', title: 'Марафонец', tiers: [3600, 36000, 180000], fmt: hm, val: total.time, desc: t => `Проведи в головоломках ${hm(t)}` },
+      { id: 'universal', icon: 'grid', title: 'Универсал', tiers: games.length > 2 ? games.slice(1).map((_, i) => i + 2) : [2], val: total.played, desc: t => `Победи в ${t} разных играх` },
+      { id: 'owl', icon: 'moon', title: 'Ночная сова', tiers: [1], val: () => st.flags.owl || 0, desc: () => 'Реши головоломку после полуночи' },
+      { id: 'lark', icon: 'sun', title: 'Ранняя пташка', tiers: [1], val: () => st.flags.lark || 0, desc: () => 'Реши головоломку с 5 до 8 утра' },
+      { id: 'curious', icon: 'question', title: 'Любопытство', tiers: [10], val: total.hints, desc: t => `Возьми ${n(t, 'подсказку', 'подсказки', 'подсказок')}` },
+    ];
+    for (const gid of games) {
+      const m = META[gid], g = () => G(gid);
+      list.push(
+        { id: gid + '-fan', game: gid, icon: 'heart', title: 'Знаток', tiers: [5, 25, 100], val: () => winsOf(g()), desc: t => `Реши ${n(t, 'головоломку', 'головоломки', 'головоломок')} в игре «${m.title}»` },
+        { id: gid + '-master', game: gid, icon: 'crown', title: 'Гроссмейстер', tiers: [1, 10, 50], val: () => g().wins.hard || 0, desc: t => `Победи на сложной в игре «${m.title}»${t > 1 ? ` ${n(t, 'раз', 'раза', 'раз')}` : ''}` },
+        { id: gid + '-speed', game: gid, icon: 'bolt', title: 'Молния', tiers: m.speed, low: true, fmt: fmt,
+          val: () => Math.min(g().best.medium || Infinity, g().best.hard || Infinity),
+          desc: t => `Реши среднюю или сложную быстрее ${fmt(t)} без подсказок` },
+      );
+    }
+    list.push({ id: 'collector', icon: 'star', title: 'Коллекционер', tiers: [5, 15, 30], val: () => Object.entries(st.ach).reduce((a, [k, v]) => a + (k === 'collector' ? 0 : v.tier), 0), desc: t => `Открой ${n(t, 'уровень', 'уровня', 'уровней')} других достижений` });
+    return list;
+  }
+  const reachedOf = (d, v) => d.tiers.filter(t => (d.low ? v <= t : v >= t)).length;
+
+  function check(silent = false) {
+    for (const d of defs()) {
+      const r = reachedOf(d, d.val()), prev = (st.ach[d.id] || {}).tier || 0;
+      if (r <= prev) continue;
+      const at = ((st.ach[d.id] || {}).at || []).slice();
+      while (at.length < r) at.push(Date.now());
+      st.ach[d.id] = { tier: r, at };
+      delete st.seen[d.id];
+      if (!silent) toast(d, r);
+    }
+  }
+  function unseen() { return Object.keys(st.ach).filter(id => !st.seen[id]).length; }
+
+  // ----- медаль -----
+  const ICONS = {
+    flag: '<path d="M5 21V4h11l-2 4 2 4H5"/>',
+    trophy: '<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4ZM7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4"/>',
+    mountain: '<path d="m2.5 20 7-12 4 6.5 2.5-3.5 5.5 9Z"/><path d="m7.6 11.3 1.9 1.5 1.6-1.6"/>',
+    target: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.3"/>',
+    scope: '<circle cx="12" cy="12" r="7"/><path d="M12 2v6M12 16v6M2 12h6M16 12h6"/>',
+    spark: '<path d="M12 3c.5 4.5 1.5 6 6 6.5-4.5.5-5.5 2-6 6.5-.5-4.5-1.5-6-6-6.5 4.5-.5 5.5-2 6-6.5Z"/><path d="M19 15v4M17 17h4M5 4v3M3.5 5.5h3"/>',
+    shield: '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3Z"/><path d="m8.5 12 2.5 2.5 4.5-5"/>',
+    bulb: '<path d="M9 18h6M10 21.5h4M12 2.5a6.5 6.5 0 0 0-3.7 11.8c.5.4.7 1 .7 1.7h6c0-.7.2-1.3.7-1.7A6.5 6.5 0 0 0 12 2.5Z"/>',
+    flame: '<path d="M12 22c4 0 7-2.8 7-6.8 0-3.7-2.6-5.7-4-9.2-1 2-2 3-3.6 3.2.2-2.4-.4-4.6-2.4-6.7-.8 4.4-5 6.8-5 12.4C4 19.2 7.6 22 12 22Z"/><path d="M12 22c-1.7 0-3-1.2-3-3 0-2 1.6-2.8 2.5-4.6.9 1.5 3.5 2.5 3.5 4.6 0 1.8-1.3 3-3 3Z"/>',
+    hourglass: '<path d="M6 2.5h12M6 21.5h12M7.5 2.5c0 5 9 5.5 9 9.5s-9 4.5-9 9.5M16.5 2.5c0 5-9 5.5-9 9.5s9 4.5 9 9.5"/>',
+    grid: '<rect x="3.5" y="3.5" width="7" height="7" rx="1.8"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.8"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.8"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.8"/>',
+    moon: '<path d="M20 14.5A8.5 8.5 0 1 1 9.5 4 6.8 6.8 0 0 0 20 14.5Z"/><path d="M17 3.5v3M15.5 5h3"/>',
+    sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2.5M12 19.5V22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M2 12h2.5M19.5 12H22M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/>',
+    question: '<circle cx="12" cy="12" r="9"/><path d="M9.3 9.2a2.8 2.8 0 0 1 5.4.9c0 1.9-2.7 2.3-2.7 4.1M12 17.3v.2"/>',
+    heart: '<path d="M12 20.5s-8-4.8-8-10.8a4.4 4.4 0 0 1 8-2.6 4.4 4.4 0 0 1 8 2.6c0 6-8 10.8-8 10.8Z"/>',
+    crown: '<path d="m3 7.5 4.5 4.5L12 5l4.5 7L21 7.5 19 19H5Z"/><path d="M5 19h14"/>',
+    bolt: '<path d="M13.5 2 4.5 13.5h6.5L10 22l9.5-12H13Z"/>',
+    star: '<path d="m12 2.8 2.8 5.8 6.3.9-4.6 4.4 1.1 6.3L12 17.2l-5.6 3 1.1-6.3-4.6-4.4 6.3-.9Z"/>',
+  };
+  // зубчатый край медали
+  const ROSETTE = (() => {
+    const pts = [];
+    for (let k = 0; k < 32; k++) { const r = k % 2 ? 28 : 30.5, a = k / 32 * Math.PI * 2; pts.push(`${(32 + r * Math.sin(a)).toFixed(2)} ${(32 - r * Math.cos(a)).toFixed(2)}`); }
+    return 'M' + pts.join('L') + 'Z';
+  })();
+  function medal(d, tier) {
+    const t = tier ? tierNames(d.tiers.length)[tier - 1] : 'locked';
+    return `<svg class="medal m-${t}" viewBox="0 0 64 64" aria-hidden="true">
+      <path class="m-rim" d="${ROSETTE}"/>
+      <circle class="m-face" cx="32" cy="32" r="23"/>
+      <circle class="m-ring" cx="32" cy="32" r="19.5"/>
+      <path class="m-gloss" d="M13 27a20 20 0 0 1 32-12c-9-2-22 1-32 12Z"/>
+      <g class="m-icon" transform="translate(20 20)">${ICONS[d.icon] || ICONS.star}</g>
+    </svg>`;
+  }
+  function defsSvg() {
+    if ($('medalDefs')) return;
+    const grad = (id, stops) => `<linearGradient id="${id}" x1="0" y1="0" x2="0.4" y2="1">${stops.map((c, k) => `<stop offset="${k / (stops.length - 1)}" stop-color="${c}"/>`).join('')}</linearGradient>`;
+    const div = document.createElement('div');
+    div.innerHTML = `<svg id="medalDefs" width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+      ${grad('gBronzeR', ['#e3a066', '#8e4a1c'])}${grad('gBronzeF', ['#f6c08c', '#c06f33', '#a55a24'])}
+      ${grad('gSilverR', ['#e9edf5', '#6f7890'])}${grad('gSilverF', ['#ffffff', '#c3cad8', '#9aa3b8'])}
+      ${grad('gGoldR', ['#ffe07a', '#a86f00'])}${grad('gGoldF', ['#fff3b0', '#f5c542', '#d99a10'])}
+      ${grad('gDiamondR', ['#9ff0ff', '#5a4bd1'])}${grad('gDiamondF', ['#e6fbff', '#7fd8ff', '#8a7dff', '#c47dff'])}
+    </defs></svg>`;
+    document.body.appendChild(div.firstElementChild);
+  }
+
+  // ----- всплывающее уведомление -----
+  const queue = [];
+  let showing = false;
+  function toast(d, tier) {
+    queue.push([d, tier]);
+    if (!showing) setTimeout(nextToast, 350);
+  }
+  function nextToast() {
+    const it = queue.shift();
+    if (!it) { showing = false; return; }
+    showing = true;
+    const [d, tier] = it, names = tierNames(d.tiers.length), t = names[tier - 1];
+    const el = document.createElement('button');
+    el.className = `ach-toast t-${t}`;
+    el.innerHTML = `<span class="ach-toast-medal">${medal(d, tier)}<i></i><i></i><i></i><i></i><i></i><i></i></span>
+      <span class="ach-toast-txt"><small>Достижение${names.length > 1 ? ' · ' + TIERS[t] : ''}</small><b>${d.title}</b><em>${d.desc(d.tiers[tier - 1])}</em></span>`;
+    el.onclick = () => { finish(); showcase(d.id); };
+    document.body.appendChild(el);
+    requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('in')));
+    let done = false;
+    const timer = setTimeout(finish, queue.length > 1 ? 2600 : 4200);
+    function finish() {
+      if (done) return; done = true; clearTimeout(timer);
+      el.classList.remove('in'); el.classList.add('out');
+      setTimeout(() => { el.remove(); nextToast(); }, 450);
+    }
+    refreshDot();
+  }
+  function refreshDot() { const b = $('profileBtn'); if (b) b.classList.toggle('dot', unseen() > 0); }
+
+  // ----- витрина -----
+  function progressOf(d) {
+    const v = d.val(), r = reachedOf(d, v), next = d.tiers[r];
+    const show = x => (d.fmt ? d.fmt(x) : x + (d.unit || ''));
+    if (next === undefined) return { r, pct: 100, text: 'Все уровни открыты' };
+    if (d.low) {
+      const has = v !== Infinity;
+      return { r, pct: has ? Math.min(99, Math.round(next / v * 100)) : 0, text: has ? `Лучшее ${show(v)} · нужно ${show(next)}` : `Нужно быстрее ${show(next)}` };
+    }
+    if (d.min && total.correct() + total.wrong() < d.min) {
+      const m = total.correct() + total.wrong();
+      return { r, pct: Math.round(m / d.min * 100), text: `Ещё ${n(d.min - m, 'ход', 'хода', 'ходов')} до подсчёта` };
+    }
+    const base = r ? d.tiers[r - 1] : 0;
+    const pct = d.unit === '%' ? Math.round(v / next * 100) : Math.max(0, Math.min(99, Math.round((v - base) / (next - base) * 100)));
+    return { r, pct, text: `${show(Math.min(v, next))} из ${show(next)}` };
+  }
+
+  function panel(html, cls = '') {
+    const root = $('sheetRoot');
+    root.innerHTML = `<div class="sheet-back"><div class="sheet panel ${cls}" role="dialog" aria-modal="true">
+      <button class="panel-close" id="panelClose" aria-label="Закрыть">×</button>${html}</div></div>`;
+    const close = () => { root.innerHTML = ''; };
+    $('panelClose').onclick = close;
+    root.querySelector('.sheet-back').addEventListener('pointerdown', e => { if (e.target.classList.contains('sheet-back')) close(); });
+    return root.querySelector('.panel');
+  }
+
+  function showcase(focus) {
+    defsSvg();
+    const all = defs();
+    const levels = all.reduce((a, d) => a + d.tiers.length, 0);
+    const got = all.reduce((a, d) => a + ((st.ach[d.id] || {}).tier || 0), 0);
+    const groups = [['Общие', all.filter(d => !d.game)], ...Object.keys(META).map(g => [META[g].title, all.filter(d => d.game === g)])];
+    const card = d => {
+      const p = progressOf(d), names = tierNames(d.tiers.length), isNew = st.ach[d.id] && !st.seen[d.id];
+      return `<button class="badge ${p.r ? 't-' + names[p.r - 1] : 'locked'} ${isNew ? 'new' : ''}" data-id="${d.id}">
+        <span class="badge-medal">${medal(d, p.r)}</span>
+        <b>${d.title}</b>
+        <span class="pips">${names.map((t, k) => `<i class="${k < p.r ? 'on p-' + t : ''}"></i>`).join('')}</span>
+        <span class="prog"><i style="width:${p.r === d.tiers.length ? 100 : p.pct}%"></i></span>
+      </button>`;
+    };
+    const el = panel(`
+      <div class="sc-head">
+        <div class="sc-ring" style="--p:${Math.round(got / levels * 100)}"><b>${got}</b><small>из ${levels}</small></div>
+        <div><h2>Витрина достижений</h2><p class="muted">${Profiles.esc(Profiles.active().name)}, открыто ${n(got, 'уровень', 'уровня', 'уровней')} в ${n(Object.keys(st.ach).length, 'достижении', 'достижениях', 'достижениях')} из ${all.length}.</p></div>
+      </div>
+      ${groups.map(([t, ds]) => `<h3 class="sc-group">${t}</h3><div class="badges">${ds.map(card).join('')}</div>`).join('')}
+      <button class="sc-back" id="scBack">← К профилю</button>`, 'showcase');
+    el.querySelectorAll('.badge').forEach(b => b.onclick = () => detail(all.find(d => d.id === b.dataset.id)));
+    $('scBack').onclick = profile;
+    // всё, что увидели в витрине, больше не «новое»
+    for (const id of Object.keys(st.ach)) st.seen[id] = 1;
+    save(); refreshDot();
+    if (focus) { const b = el.querySelector(`[data-id="${focus}"]`); if (b) { b.scrollIntoView({ block: 'center' }); b.classList.add('focus'); } }
+  }
+
+  function detail(d) {
+    const p = progressOf(d), names = tierNames(d.tiers.length), at = (st.ach[d.id] || {}).at || [];
+    const show = x => (d.fmt ? d.fmt(x) : x + (d.unit || ''));
+    const el = panel(`
+      <div class="ach-detail ${p.r ? 't-' + names[p.r - 1] : 'locked'}">
+        <span class="ach-big">${medal(d, p.r)}</span>
+        ${d.game ? `<span class="chip">${META[d.game].title}</span>` : ''}
+        <h2>${d.title}</h2>
+        <p class="muted">${p.text}</p>
+        <ol class="tiers">${d.tiers.map((t, k) => `<li class="${k < p.r ? 'done' : ''}">
+          <span class="tier-dot p-${names[k]}"></span>
+          <span><b>${names.length > 1 ? TIERS[names[k]] : 'Открыть'}</b><small>${d.desc(t)}</small></span>
+          <em>${k < p.r ? (at[k] ? new Date(at[k]).toLocaleDateString('ru', { day: 'numeric', month: 'short' }) : '✓') : (k === p.r ? p.pct + '%' : show(t))}</em></li>`).join('')}</ol>
+      </div>
+      <button class="sc-back" id="dtBack">← Ко всем достижениям</button>`, 'detail');
+    $('dtBack').onclick = () => showcase(d.id);
+  }
+
+  // ----- профиль и статистика -----
+  function profile() {
+    defsSvg();
+    const me = Profiles.active(), all = defs();
+    const c = total.correct(), w = total.wrong(), acc = accuracy(c, w);
+    const recent = all.filter(d => st.ach[d.id]).sort((a, b) => Math.max(...st.ach[b.id].at) - Math.max(...st.ach[a.id].at)).slice(0, 3);
+    const got = all.reduce((a, d) => a + ((st.ach[d.id] || {}).tier || 0), 0), levels = all.reduce((a, d) => a + d.tiers.length, 0);
+    const gameRows = Object.keys(META).map(gid => {
+      const g = G(gid), a = accuracy(g.correct, g.wrong);
+      return `<div class="pf-game"><div class="pf-game-h"><b>${META[gid].title}</b><span>${n(winsOf(g), 'победа', 'победы', 'побед')} · точность ${a === null ? '—' : a + '%'}</span></div>
+        <div class="pf-lv">${Object.entries(LEVELS).map(([l, name]) => `<div><small>${name}</small><b>${g.wins[l] || 0}</b><span>${g.best[l] ? '⏱ ' + fmt(g.best[l]) : '—'}</span></div>`).join('')}</div></div>`;
+    }).join('');
+    const el = panel(`
+      <div class="pf-top">${Profiles.avatar(me, 'big')}<div><h2>${Profiles.esc(me.name)}</h2><button class="link" id="pfEdit">Изменить профиль</button></div></div>
+      <div class="pf-stats">
+        <div><b>${total.wins()}</b><small>${plural(total.wins(), 'победа', 'победы', 'побед')}</small></div>
+        <div><b>${acc === null ? '—' : acc + '%'}</b><small>точность</small></div>
+        <div><b>${c}</b><small>верных ходов</small></div>
+        <div><b>${total.hints()}</b><small>${plural(total.hints(), 'подсказка', 'подсказки', 'подсказок')}</small></div>
+        <div><b>${hm(total.time())}</b><small>в игре</small></div>
+        <div><b>${st.days.streak}${st.days.best > st.days.streak ? `<i>/${st.days.best}</i>` : ''}</b><small>${plural(st.days.streak, 'день', 'дня', 'дней')} подряд</small></div>
+      </div>
+      <button class="pf-showcase" id="pfShow">
+        <span class="pf-show-medals">${recent.length ? recent.map(d => medal(d, st.ach[d.id].tier)).join('') : medal({ icon: 'trophy', tiers: [1] }, 0)}</span>
+        <span class="pf-show-txt"><b>Витрина достижений</b><small>${got} из ${levels} уровней${unseen() ? ` · <em>новых: ${unseen()}</em>` : ''}</small></span>
+        <span class="chev">›</span>
+      </button>
+      <h3 class="sc-group">По играм</h3>
+      ${gameRows}
+      <h3 class="sc-group">Игроки на этом устройстве</h3>
+      <div class="pf-list">
+        ${Profiles.list().map(p => `<button class="pf-row" data-id="${p.id}" aria-pressed="${p.id === me.id}">${Profiles.avatar(p)}<span>${Profiles.esc(p.name)}</span>${p.id === me.id ? '<em>играет сейчас</em>' : '<em>переключиться</em>'}</button>`).join('')}
+        <button class="pf-row add" id="pfAdd"><span class="avatar add">+</span><span>Новый игрок</span></button>
+      </div>
+      <p class="muted small">Профили и прогресс хранятся только на этом устройстве.</p>`, 'profile');
+    $('pfShow').onclick = () => showcase();
+    $('pfEdit').onclick = async () => { await Profiles.edit(); renderAvatar(); profile(); };
+    $('pfAdd').onclick = async () => { if (!(await Profiles.add())) profile(); };
+    el.querySelectorAll('.pf-row[data-id]').forEach(b => b.onclick = () => Profiles.switchTo(b.dataset.id));
+  }
+  function renderAvatar() {
+    const b = $('profileBtn'), me = Profiles.active();
+    b.innerHTML = Profiles.avatar(me);
+    b.setAttribute('aria-label', `Профиль: ${me.name}`);
+    refreshDot();
+  }
+  function initUI() {
+    defsSvg();
+    // достижения за то, что было сыграно до их появления, открываются тихо и ждут в витрине
+    check(!st.init);
+    st.init = true; save();
+    renderAvatar();
+    $('profileBtn').onclick = profile;
+  }
+
+  load();
+  addEventListener('pagehide', save);
+  addEventListener('lg-save', save);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
+  return { register, seed, start, move, hint, tick, win, wins: gid => winsOf(G(gid)), initUI, refresh: renderAvatar, profile, showcase };
+})();
 
 // ===== Движок Сугуру: генератор, решатель, логические шаги =====
 const Suguru = (() => {
@@ -551,18 +1237,18 @@ const SuguruApp = (() => {
 
   let S = null;      // текущая партия
   let geo = null;    // геометрия областей
-  let stats = { solved: { easy: 0, medium: 0, hard: 0 }, best: {} };
   let level = 'medium';
   let cells = [];
 
   function load() {
     try {
-      const d = JSON.parse(localStorage.getItem(KEY) || 'null');
-      if (d) { stats = d.stats || stats; level = d.level || level; if (d.game && d.game.p) S = d.game; }
+      const d = JSON.parse(localStorage.getItem(Profiles.key(KEY)) || 'null');
+      if (d) { level = d.level || level; if (d.game && d.game.p) S = d.game; if (d.stats) Track.seed('suguru', d.stats); }
     } catch (e) {}
   }
   function save() {
-    try { localStorage.setItem(KEY, JSON.stringify({ stats, level, game: S })); } catch (e) {}
+    if (Profiles.locked) return;
+    try { localStorage.setItem(Profiles.key(KEY), JSON.stringify({ level, game: S })); } catch (e) {}
   }
 
   function newGame(lvl = level) {
@@ -570,9 +1256,9 @@ const SuguruApp = (() => {
     $('loading').hidden = false;
     setTimeout(() => {
       const p = Suguru.generate(lvl);
-      S = { p, vals: p.givens.slice(), notes: new Array(81).fill(0), elapsed: 0, hints: 0, done: false, sel: -1, history: [] };
+      S = { p, vals: p.givens.slice(), notes: new Array(81).fill(0), elapsed: 0, hints: 0, mistakes: 0, done: false, sel: -1, history: [] };
       $('loading').hidden = true;
-      setup(); save();
+      setup(); save(); Track.start('suguru');
     }, 30);
   }
 
@@ -631,7 +1317,6 @@ const SuguruApp = (() => {
       const d = cells[i], v = S.vals[i];
       d.classList.toggle('given', !!S.p.givens[i]);
       d.classList.toggle('sel', i === sel);
-      d.classList.toggle('area', sel >= 0 && i !== sel && S.p.reg[i] === S.p.reg[sel]);
       d.classList.toggle('same', sel >= 0 && i !== sel && !!selVal && v === selVal);
       d.classList.toggle('bad', bad.has(i) && !S.p.givens[i]);
       if (v) d.textContent = v;
@@ -647,7 +1332,7 @@ const SuguruApp = (() => {
     document.querySelectorAll('#pad button').forEach((b, k) => { b.disabled = locked || k + 1 > max; });
     $('pad').classList.toggle('noting', notesMode);
     $('hintsUsed').textContent = S.hints;
-    $('solved').textContent = stats.solved.easy + stats.solved.medium + stats.solved.hard;
+    $('solved').textContent = Track.wins('suguru');
     $('timer').textContent = fmt(S.elapsed);
   }
 
@@ -667,6 +1352,7 @@ const SuguruApp = (() => {
       S.notes[i] ^= 1 << (n - 1);
     } else {
       S.vals[i] = S.vals[i] === n ? 0 : n;
+      if (S.vals[i]) { const ok = n === S.p.solution[i]; if (!ok) S.mistakes = (S.mistakes || 0) + 1; Track.move('suguru', ok); }
       if (S.vals[i]) for (const p of geo.peers[i]) S.notes[p] &= ~(1 << (n - 1));
     }
     afterMove();
@@ -688,9 +1374,9 @@ const SuguruApp = (() => {
   // ===== Подсказки =====
   async function askHint() {
     if (S.done) return;
-    const go = await sheet({ title: HintGate.title, body: `<p>${HintGate.text}</p>`, ok: 'Получить подсказку', cancel: 'Сама справлюсь' });
+    const go = await sheet({ title: HintGate.title, body: `<p>${HintGate.text}</p>`, ok: 'Получить подсказку', cancel: Profiles.G('Сама справлюсь', 'Сам справлюсь') });
     if (!go || !(await HintGate.request())) return;
-    S.hints++; save(); render();
+    S.hints++; Track.hint('suguru'); save(); render();
     showHint();
   }
 
@@ -732,7 +1418,7 @@ const SuguruApp = (() => {
       text = `Здесь стоит ${v}.`;
     }
     S.sel = i; render(); flash(i);
-    sheet({ title: 'Подсказка', body: `<p>${text}</p>`, ok: `Поставить ${v}`, cancel: 'Дальше сама' })
+    sheet({ title: 'Подсказка', body: `<p>${text}</p>`, ok: `Поставить ${v}`, cancel: Profiles.G('Дальше сама', 'Дальше сам') })
       .then(ok => { if (ok && !S.done) { snapshot(); S.vals[i] = v; afterMove(); } });
   }
 
@@ -759,18 +1445,16 @@ const SuguruApp = (() => {
 
   function win() {
     S.done = true;
-    stats.solved[S.p.difficulty] = (stats.solved[S.p.difficulty] || 0) + 1;
-    const best = stats.best[S.p.difficulty];
-    const record = !S.hints && (!best || S.elapsed < best);
-    if (record) stats.best[S.p.difficulty] = S.elapsed;
+    const { record } = Track.win('suguru', { lvl: S.p.difficulty, elapsed: S.elapsed, hints: S.hints, mistakes: S.mistakes || 0 });
     save(); render(); hearts();
     sheet({
       cls: 'win',
-      title: PRAISE[Math.random() * PRAISE.length | 0],
+      title: praise(),
       body: `<div class="stats">
         <div><span>Время</span><b>${fmt(S.elapsed)}</b></div>
         <div><span>Уровень</span><b>${LVL_NAME[S.p.difficulty]}</b></div>
-        <div><span>Подсказок</span><b>${S.hints}</b></div></div>
+        <div><span>Подсказок</span><b>${S.hints}</b></div>
+        <div><span>Ошибок</span><b>${S.mistakes || 0}</b></div></div>
         ${record ? '<p class="muted">Новый рекорд без подсказок на этом уровне.</p>' : ''}`,
       ok: 'Ещё одну', cancel: 'Полюбоваться',
     }).then(ok => { if (ok) newGame(S.p.difficulty); });
@@ -814,17 +1498,21 @@ const SuguruApp = (() => {
     }
   }
   function tick() {
-    if (S && !S.done && $('loading').hidden) { S.elapsed++; $('timer').textContent = fmt(S.elapsed); if (S.elapsed % 10 === 0) save(); }
+    if (S && !S.done && $('loading').hidden) { S.elapsed++; Track.tick('suguru'); $('timer').textContent = fmt(S.elapsed); if (S.elapsed % 10 === 0) save(); }
   }
   let shown = false;
   function show() {
     if (shown) return;
     shown = true; bind();
     if (S) { S.sel = -1; setup(); } else newGame(level);
-    try { if (!localStorage.getItem(KEY + '-seen')) { localStorage.setItem(KEY + '-seen', '1'); rules(); } } catch (e) {}
+    try { if (!localStorage.getItem(Profiles.key(KEY + '-seen'))) { localStorage.setItem(Profiles.key(KEY + '-seen'), '1'); rules(); } } catch (e) {}
   }
   load();
-  return { show, tick, keydown, rules, solved: () => stats.solved.easy + stats.solved.medium + stats.solved.hard };
+  Track.register('suguru', { title: 'Сугуру', speed: [600, 360, 240] });
+  addEventListener('pagehide', () => S && save());
+  addEventListener('lg-save', () => S && save());
+  document.addEventListener('visibilitychange', () => { if (document.hidden && S) save(); });
+  return { show, tick, keydown, rules, solved: () => Track.wins('suguru') };
 })();
 
 // ===== Движок судоку 12×12: генератор, решатель, логические шаги =====
@@ -1024,19 +1712,19 @@ const SudokuApp = (() => {
   const LVL_NAME = { easy: 'Лёгкая', medium: 'Средняя', hard: 'Сложная' };
 
   let S = null;      // текущая партия
-  let stats = { solved: { easy: 0, medium: 0, hard: 0 }, best: {} };
   let level = 'medium';
   let cells = [], padBtns = [];
   let notesMode = false;
 
   function load() {
     try {
-      const d = JSON.parse(localStorage.getItem(KEY) || 'null');
-      if (d) { stats = d.stats || stats; level = d.level || level; if (d.game && d.game.p) S = d.game; }
+      const d = JSON.parse(localStorage.getItem(Profiles.key(KEY)) || 'null');
+      if (d) { level = d.level || level; if (d.game && d.game.p) S = d.game; if (d.stats) Track.seed('sudoku', d.stats); }
     } catch (e) {}
   }
   function save() {
-    try { localStorage.setItem(KEY, JSON.stringify({ stats, level, game: S })); } catch (e) {}
+    if (Profiles.locked) return;
+    try { localStorage.setItem(Profiles.key(KEY), JSON.stringify({ level, game: S })); } catch (e) {}
   }
 
   function newGame(lvl = level) {
@@ -1044,9 +1732,9 @@ const SudokuApp = (() => {
     $('sdLoading').hidden = false;
     setTimeout(() => {
       const p = E.generate(lvl);
-      S = { p, vals: p.givens.slice(), notes: new Array(C).fill(0), elapsed: 0, hints: 0, done: false, sel: -1, history: [] };
+      S = { p, vals: p.givens.slice(), notes: new Array(C).fill(0), elapsed: 0, hints: 0, mistakes: 0, done: false, sel: -1, history: [] };
       $('sdLoading').hidden = true;
-      setup(); save();
+      setup(); save(); Track.start('sudoku');
     }, 30);
   }
 
@@ -1097,14 +1785,12 @@ const SudokuApp = (() => {
 
   function render() {
     const bad = conflicts(), sel = S.sel, selVal = sel >= 0 ? S.vals[sel] : 0;
-    const sr = sel >= 0 ? E.rowOf(sel) : -1, sc = sel >= 0 ? E.colOf(sel) : -1, sb = sel >= 0 ? E.boxOf(sel) : -1;
     const count = new Array(N + 1).fill(0);
     for (let i = 0; i < C; i++) {
       const d = cells[i], v = S.vals[i];
       if (v) count[v]++;
       d.classList.toggle('given', !!S.p.givens[i]);
       d.classList.toggle('sel', i === sel);
-      d.classList.toggle('area', sel >= 0 && i !== sel && (E.rowOf(i) === sr || E.colOf(i) === sc || E.boxOf(i) === sb));
       d.classList.toggle('same', sel >= 0 && i !== sel && !!selVal && v === selVal);
       d.classList.toggle('bad', bad.has(i) && !S.p.givens[i]);
       d.classList.toggle('two', v > 9);
@@ -1121,7 +1807,7 @@ const SudokuApp = (() => {
     padBtns.forEach((b, k) => { b.disabled = locked; b.classList.toggle('full', count[k + 1] >= N); });
     $('sdPad').classList.toggle('noting', notesMode);
     $('sdHints').textContent = S.hints;
-    $('sdSolved').textContent = stats.solved.easy + stats.solved.medium + stats.solved.hard;
+    $('sdSolved').textContent = Track.wins('sudoku');
     $('sdTimer').textContent = fmt(S.elapsed);
   }
 
@@ -1140,6 +1826,7 @@ const SudokuApp = (() => {
       S.notes[i] ^= 1 << (n - 1);
     } else {
       S.vals[i] = S.vals[i] === n ? 0 : n;
+      if (S.vals[i]) { const ok = n === S.p.solution[i]; if (!ok) S.mistakes = (S.mistakes || 0) + 1; Track.move('sudoku', ok); }
       if (S.vals[i]) for (const p of E.PEERS[i]) S.notes[p] &= ~(1 << (n - 1));
     }
     afterMove();
@@ -1161,9 +1848,9 @@ const SudokuApp = (() => {
   // ===== Подсказки =====
   async function askHint() {
     if (S.done) return;
-    const go = await sheet({ title: HintGate.title, body: `<p>${HintGate.text}</p>`, ok: 'Получить подсказку', cancel: 'Сама справлюсь' });
+    const go = await sheet({ title: HintGate.title, body: `<p>${HintGate.text}</p>`, ok: 'Получить подсказку', cancel: Profiles.G('Сама справлюсь', 'Сам справлюсь') });
     if (!go || !(await HintGate.request())) return;
-    S.hints++; save(); render();
+    S.hints++; Track.hint('sudoku'); save(); render();
     showHint();
   }
 
@@ -1206,7 +1893,7 @@ const SudokuApp = (() => {
       text = `Здесь стоит ${SYM[v]}.`;
     }
     S.sel = i; render(); flash(i);
-    sheet({ title: 'Подсказка', body: `<p>${text}</p>`, ok: `Поставить ${SYM[v]}`, cancel: 'Дальше сама' })
+    sheet({ title: 'Подсказка', body: `<p>${text}</p>`, ok: `Поставить ${SYM[v]}`, cancel: Profiles.G('Дальше сама', 'Дальше сам') })
       .then(ok => { if (ok && !S.done) { snapshot(); S.vals[i] = v; afterMove(); } });
   }
 
@@ -1238,18 +1925,16 @@ const SudokuApp = (() => {
 
   function win() {
     S.done = true;
-    stats.solved[S.p.difficulty] = (stats.solved[S.p.difficulty] || 0) + 1;
-    const best = stats.best[S.p.difficulty];
-    const record = !S.hints && (!best || S.elapsed < best);
-    if (record) stats.best[S.p.difficulty] = S.elapsed;
+    const { record } = Track.win('sudoku', { lvl: S.p.difficulty, elapsed: S.elapsed, hints: S.hints, mistakes: S.mistakes || 0 });
     save(); render(); hearts();
     sheet({
       cls: 'win',
-      title: PRAISE[Math.random() * PRAISE.length | 0],
+      title: praise(),
       body: `<div class="stats">
         <div><span>Время</span><b>${fmt(S.elapsed)}</b></div>
         <div><span>Уровень</span><b>${LVL_NAME[S.p.difficulty]}</b></div>
-        <div><span>Подсказок</span><b>${S.hints}</b></div></div>
+        <div><span>Подсказок</span><b>${S.hints}</b></div>
+        <div><span>Ошибок</span><b>${S.mistakes || 0}</b></div></div>
         ${record ? '<p class="muted">Новый рекорд без подсказок на этом уровне.</p>' : ''}`,
       ok: 'Ещё одну', cancel: 'Полюбоваться',
     }).then(ok => { if (ok) newGame(S.p.difficulty); });
@@ -1295,17 +1980,21 @@ const SudokuApp = (() => {
     }
   }
   function tick() {
-    if (S && !S.done && $('sdLoading').hidden) { S.elapsed++; $('sdTimer').textContent = fmt(S.elapsed); if (S.elapsed % 10 === 0) save(); }
+    if (S && !S.done && $('sdLoading').hidden) { S.elapsed++; Track.tick('sudoku'); $('sdTimer').textContent = fmt(S.elapsed); if (S.elapsed % 10 === 0) save(); }
   }
   let shown = false;
   function show() {
     if (shown) return;
     shown = true; bind();
     if (S) { S.sel = -1; setup(); } else newGame(level);
-    try { if (!localStorage.getItem(KEY + '-seen')) { localStorage.setItem(KEY + '-seen', '1'); rules(); } } catch (e) {}
+    try { if (!localStorage.getItem(Profiles.key(KEY + '-seen'))) { localStorage.setItem(Profiles.key(KEY + '-seen'), '1'); rules(); } } catch (e) {}
   }
   load();
-  return { show, tick, keydown, rules, solved: () => stats.solved.easy + stats.solved.medium + stats.solved.hard };
+  Track.register('sudoku', { title: 'Судоку 12×12', speed: [2100, 1380, 900] });
+  addEventListener('pagehide', () => S && save());
+  addEventListener('lg-save', () => S && save());
+  document.addEventListener('visibilitychange', () => { if (document.hidden && S) save(); });
+  return { show, tick, keydown, rules, solved: () => Track.wins('sudoku') };
 })();
 
 // ===== Переключение между играми =====
@@ -1324,13 +2013,13 @@ function switchTo(id) {
   $('brandTitle').innerHTML = `${g.title}<span>.</span>`;
   $('brandSize').textContent = g.size;
   document.title = `${g.title} для Дали`;
-  try { localStorage.setItem(SHELL_KEY, JSON.stringify({ current })); } catch (e) {}
+  if (!Profiles.locked) try { localStorage.setItem(Profiles.key(SHELL_KEY), JSON.stringify({ current })); } catch (e) {}
   g.app.show();
 }
 
 function pickGame() {
   $('gameBtn').classList.remove('fresh');
-  try { localStorage.setItem(SHELL_KEY + '-picker', '1'); } catch (e) {}
+  try { localStorage.setItem(Profiles.key(SHELL_KEY + '-picker'), '1'); } catch (e) {}
   const root = $('sheetRoot');
   const items = Object.entries(GAMES).map(([k, g]) => `
     <button class="game-card" data-game="${k}" aria-pressed="${k === current}">
@@ -1346,7 +2035,7 @@ function pickGame() {
   root.querySelector('.sheet-back').addEventListener('pointerdown', e => { if (e.target.classList.contains('sheet-back')) close(); });
 }
 
-function initShell() {
+async function initShell() {
   $('gameBtn').onclick = pickGame;
   $('rulesBtn').onclick = () => GAMES[current].app.rules();
   document.addEventListener('keydown', e => {
@@ -1354,9 +2043,12 @@ function initShell() {
     GAMES[current].app.keydown(e);
   });
   setInterval(() => { if (!document.hidden) GAMES[current].app.tick(); }, 1000);
-  try { if (!localStorage.getItem(SHELL_KEY + '-picker')) $('gameBtn').classList.add('fresh'); } catch (e) {}
+  Track.initUI();
+  await Profiles.welcome();
+  Track.refresh();
+  try { if (!localStorage.getItem(Profiles.key(SHELL_KEY + '-picker'))) $('gameBtn').classList.add('fresh'); } catch (e) {}
   let saved = 'suguru';
-  try { saved = (JSON.parse(localStorage.getItem(SHELL_KEY) || 'null') || {}).current || saved; } catch (e) {}
+  try { saved = (JSON.parse(localStorage.getItem(Profiles.key(SHELL_KEY)) || 'null') || {}).current || saved; } catch (e) {}
   switchTo(saved);
 }
 initShell();

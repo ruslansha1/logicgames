@@ -5,18 +5,18 @@ const SuguruApp = (() => {
 
   let S = null;      // текущая партия
   let geo = null;    // геометрия областей
-  let stats = { solved: { easy: 0, medium: 0, hard: 0 }, best: {} };
   let level = 'medium';
   let cells = [];
 
   function load() {
     try {
-      const d = JSON.parse(localStorage.getItem(KEY) || 'null');
-      if (d) { stats = d.stats || stats; level = d.level || level; if (d.game && d.game.p) S = d.game; }
+      const d = JSON.parse(localStorage.getItem(Profiles.key(KEY)) || 'null');
+      if (d) { level = d.level || level; if (d.game && d.game.p) S = d.game; if (d.stats) Track.seed('suguru', d.stats); }
     } catch (e) {}
   }
   function save() {
-    try { localStorage.setItem(KEY, JSON.stringify({ stats, level, game: S })); } catch (e) {}
+    if (Profiles.locked) return;
+    try { localStorage.setItem(Profiles.key(KEY), JSON.stringify({ level, game: S })); } catch (e) {}
   }
 
   function newGame(lvl = level) {
@@ -24,9 +24,9 @@ const SuguruApp = (() => {
     $('loading').hidden = false;
     setTimeout(() => {
       const p = Suguru.generate(lvl);
-      S = { p, vals: p.givens.slice(), notes: new Array(81).fill(0), elapsed: 0, hints: 0, done: false, sel: -1, history: [] };
+      S = { p, vals: p.givens.slice(), notes: new Array(81).fill(0), elapsed: 0, hints: 0, mistakes: 0, done: false, sel: -1, history: [] };
       $('loading').hidden = true;
-      setup(); save();
+      setup(); save(); Track.start('suguru');
     }, 30);
   }
 
@@ -85,7 +85,6 @@ const SuguruApp = (() => {
       const d = cells[i], v = S.vals[i];
       d.classList.toggle('given', !!S.p.givens[i]);
       d.classList.toggle('sel', i === sel);
-      d.classList.toggle('area', sel >= 0 && i !== sel && S.p.reg[i] === S.p.reg[sel]);
       d.classList.toggle('same', sel >= 0 && i !== sel && !!selVal && v === selVal);
       d.classList.toggle('bad', bad.has(i) && !S.p.givens[i]);
       if (v) d.textContent = v;
@@ -101,7 +100,7 @@ const SuguruApp = (() => {
     document.querySelectorAll('#pad button').forEach((b, k) => { b.disabled = locked || k + 1 > max; });
     $('pad').classList.toggle('noting', notesMode);
     $('hintsUsed').textContent = S.hints;
-    $('solved').textContent = stats.solved.easy + stats.solved.medium + stats.solved.hard;
+    $('solved').textContent = Track.wins('suguru');
     $('timer').textContent = fmt(S.elapsed);
   }
 
@@ -121,6 +120,7 @@ const SuguruApp = (() => {
       S.notes[i] ^= 1 << (n - 1);
     } else {
       S.vals[i] = S.vals[i] === n ? 0 : n;
+      if (S.vals[i]) { const ok = n === S.p.solution[i]; if (!ok) S.mistakes = (S.mistakes || 0) + 1; Track.move('suguru', ok); }
       if (S.vals[i]) for (const p of geo.peers[i]) S.notes[p] &= ~(1 << (n - 1));
     }
     afterMove();
@@ -142,9 +142,9 @@ const SuguruApp = (() => {
   // ===== Подсказки =====
   async function askHint() {
     if (S.done) return;
-    const go = await sheet({ title: HintGate.title, body: `<p>${HintGate.text}</p>`, ok: 'Получить подсказку', cancel: 'Сама справлюсь' });
+    const go = await sheet({ title: HintGate.title, body: `<p>${HintGate.text}</p>`, ok: 'Получить подсказку', cancel: Profiles.G('Сама справлюсь', 'Сам справлюсь') });
     if (!go || !(await HintGate.request())) return;
-    S.hints++; save(); render();
+    S.hints++; Track.hint('suguru'); save(); render();
     showHint();
   }
 
@@ -186,7 +186,7 @@ const SuguruApp = (() => {
       text = `Здесь стоит ${v}.`;
     }
     S.sel = i; render(); flash(i);
-    sheet({ title: 'Подсказка', body: `<p>${text}</p>`, ok: `Поставить ${v}`, cancel: 'Дальше сама' })
+    sheet({ title: 'Подсказка', body: `<p>${text}</p>`, ok: `Поставить ${v}`, cancel: Profiles.G('Дальше сама', 'Дальше сам') })
       .then(ok => { if (ok && !S.done) { snapshot(); S.vals[i] = v; afterMove(); } });
   }
 
@@ -213,18 +213,16 @@ const SuguruApp = (() => {
 
   function win() {
     S.done = true;
-    stats.solved[S.p.difficulty] = (stats.solved[S.p.difficulty] || 0) + 1;
-    const best = stats.best[S.p.difficulty];
-    const record = !S.hints && (!best || S.elapsed < best);
-    if (record) stats.best[S.p.difficulty] = S.elapsed;
+    const { record } = Track.win('suguru', { lvl: S.p.difficulty, elapsed: S.elapsed, hints: S.hints, mistakes: S.mistakes || 0 });
     save(); render(); hearts();
     sheet({
       cls: 'win',
-      title: PRAISE[Math.random() * PRAISE.length | 0],
+      title: praise(),
       body: `<div class="stats">
         <div><span>Время</span><b>${fmt(S.elapsed)}</b></div>
         <div><span>Уровень</span><b>${LVL_NAME[S.p.difficulty]}</b></div>
-        <div><span>Подсказок</span><b>${S.hints}</b></div></div>
+        <div><span>Подсказок</span><b>${S.hints}</b></div>
+        <div><span>Ошибок</span><b>${S.mistakes || 0}</b></div></div>
         ${record ? '<p class="muted">Новый рекорд без подсказок на этом уровне.</p>' : ''}`,
       ok: 'Ещё одну', cancel: 'Полюбоваться',
     }).then(ok => { if (ok) newGame(S.p.difficulty); });
@@ -268,15 +266,19 @@ const SuguruApp = (() => {
     }
   }
   function tick() {
-    if (S && !S.done && $('loading').hidden) { S.elapsed++; $('timer').textContent = fmt(S.elapsed); if (S.elapsed % 10 === 0) save(); }
+    if (S && !S.done && $('loading').hidden) { S.elapsed++; Track.tick('suguru'); $('timer').textContent = fmt(S.elapsed); if (S.elapsed % 10 === 0) save(); }
   }
   let shown = false;
   function show() {
     if (shown) return;
     shown = true; bind();
     if (S) { S.sel = -1; setup(); } else newGame(level);
-    try { if (!localStorage.getItem(KEY + '-seen')) { localStorage.setItem(KEY + '-seen', '1'); rules(); } } catch (e) {}
+    try { if (!localStorage.getItem(Profiles.key(KEY + '-seen'))) { localStorage.setItem(Profiles.key(KEY + '-seen'), '1'); rules(); } } catch (e) {}
   }
   load();
-  return { show, tick, keydown, rules, solved: () => stats.solved.easy + stats.solved.medium + stats.solved.hard };
+  Track.register('suguru', { title: 'Сугуру', speed: [600, 360, 240] });
+  addEventListener('pagehide', () => S && save());
+  addEventListener('lg-save', () => S && save());
+  document.addEventListener('visibilitychange', () => { if (document.hidden && S) save(); });
+  return { show, tick, keydown, rules, solved: () => Track.wins('suguru') };
 })();

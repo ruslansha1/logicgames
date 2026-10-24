@@ -3,8 +3,8 @@ import pathlib
 src = pathlib.Path(__file__).parent
 root = src.parent
 top = (src / 'top.html').read_text()
-# порядок важен: общее, затем игры, затем переключатель
-parts = ['common.js', 'engine.js', 'app.js', 'sudoku-engine.js', 'sudoku-app.js', 'shell.js']
+# порядок важен: общее, профили и достижения, затем игры, затем переключатель
+parts = ['common.js', 'profile.js', 'achievements.js', 'engine.js', 'app.js', 'sudoku-engine.js', 'sudoku-app.js', 'shell.js']
 code = '\n'.join((src / p).read_text() for p in parts)
 code = code.replace("if (typeof module !== 'undefined') module.exports = Suguru;\n", "")
 code = code.replace("if (typeof module !== 'undefined') module.exports = Sudoku12;\n", "")
