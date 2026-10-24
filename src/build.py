@@ -1,10 +1,13 @@
-# Собирает index.html в корне репозитория из src/top.html, src/engine.js и src/app.js
+# Собирает index.html в корне репозитория из src/top.html и js-файлов из src/
 import pathlib
 src = pathlib.Path(__file__).parent
 root = src.parent
 top = (src / 'top.html').read_text()
-eng = (src / 'engine.js').read_text().replace("if (typeof module !== 'undefined') module.exports = Suguru;\n", "")
-app = (src / 'app.js').read_text()
+# порядок важен: общее, затем игры, затем переключатель
+parts = ['common.js', 'engine.js', 'app.js', 'sudoku-engine.js', 'sudoku-app.js', 'shell.js']
+code = '\n'.join((src / p).read_text() for p in parts)
+code = code.replace("if (typeof module !== 'undefined') module.exports = Suguru;\n", "")
+code = code.replace("if (typeof module !== 'undefined') module.exports = Sudoku12;\n", "")
 i = top.index('<div class="app">')
 head = top[:i].replace('<meta name="claude:viewport-fit-sides" content="cover">\n', '')
 head = head.replace('<meta name="apple-mobile-web-app-capable" content="yes">', '''<meta name="apple-mobile-web-app-capable" content="yes">
@@ -30,8 +33,7 @@ doc = f'''<!doctype html>
 <body>
 {top[i:].strip()}
 <script>
-{eng}
-{app}{sw}</script>
+{code}{sw}</script>
 </body>
 </html>
 '''

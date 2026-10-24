@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Сугуру для Дали</title>
+<title>Головоломки для Дали</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -12,7 +12,7 @@
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" type="image/png" href="icon-192.png">
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="apple-mobile-web-app-title" content="Сугуру">
+<meta name="apple-mobile-web-app-title" content="Головоломки">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;500;700&family=Manrope:wght@400;500;600;700&display=swap">
 <style>
@@ -143,51 +143,182 @@ svg.lines .frame { fill: none; stroke: var(--ink); stroke-width: .15; }
 .win .stats span { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
 .win .stats b { font-family: var(--f-display); font-size: 22px; font-weight: 500; }
 canvas.hearts { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 30; }
+/* Переключатель игр */
+.head-btns { display: flex; gap: 8px; }
+.games-btn {
+  height: 40px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); padding: 0 12px 0 10px;
+  display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 13px; position: relative;
+}
+.games-btn svg { width: 18px; height: 18px; stroke: var(--accent); fill: none; stroke-width: 2; }
+.games-btn.fresh::after { content: ""; position: absolute; top: -3px; right: -3px; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--paper); }
+.screen { display: flex; flex-direction: column; gap: 14px; }
+.games { display: flex; flex-direction: column; gap: 8px; }
+.game-card {
+  display: flex; align-items: center; gap: 12px; text-align: left; width: 100%;
+  border: 1px solid var(--line); background: var(--surface); border-radius: 16px; padding: 12px;
+}
+.game-card[aria-pressed="true"] { border-color: var(--user); box-shadow: inset 0 0 0 1px var(--user); }
+.game-ico { width: 46px; height: 46px; border-radius: 12px; flex: none; background: var(--area); border: 2px solid var(--ink); position: relative; overflow: hidden; }
+.game-ico.suguru { background:
+  linear-gradient(var(--ink), var(--ink)) 45% 0 / 2px 55% no-repeat,
+  linear-gradient(var(--ink), var(--ink)) 0 55% / 100% 2px no-repeat,
+  linear-gradient(var(--ink), var(--ink)) 70% 100% / 2px 45% no-repeat, var(--area); }
+.game-ico.sudoku { background:
+  repeating-linear-gradient(90deg, transparent 0 calc(33.3% - 1px), var(--ink) calc(33.3% - 1px) 33.3%),
+  repeating-linear-gradient(0deg, transparent 0 calc(25% - 1px), var(--ink) calc(25% - 1px) 25%), var(--accent-soft); }
+.game-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.game-txt b { font-family: var(--f-display); font-weight: 700; font-size: 17px; }
+.game-txt b i { font-style: normal; font-weight: 500; color: var(--accent); font-size: 14px; }
+.game-txt small { color: var(--muted); font-size: 12px; line-height: 1.35; }
+.game-solved { display: flex; flex-direction: column; align-items: center; font-family: var(--f-display); font-size: 18px; font-variant-numeric: tabular-nums; }
+.game-solved small { font-family: var(--f-body); font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+
+/* Судоку 12×12 */
+.board-wrap.sd { width: min(100%, calc(100svh - 392px)); }
+.board.sd { grid-template-columns: repeat(12, 1fr); grid-template-rows: repeat(12, 1fr); }
+.board.sd .cell { font-size: clamp(12px, 4.2vw, 20px); }
+.board.sd .notes { inset: 1px; grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(3, 1fr); font-size: clamp(6px, 1.85vw, 9px); }
+.pad.sd { grid-template-columns: repeat(6, 1fr); gap: 6px; }
+.pad.sd button { height: 48px; font-size: 21px; }
+.pad.sd.noting button { font-size: 16px; }
+.pad.sd button.full:not(:disabled) { opacity: .4; box-shadow: none; }
 @media (prefers-reduced-motion: reduce) { .cell.hint, .sheet { animation: none; } .pad button { transition: none; } }
-@media (max-height: 640px) { .pad button { height: 48px; } .app { gap: 10px; } }
+@media (max-height: 640px) { .pad button { height: 48px; } .pad.sd button { height: 42px; } .app, .screen { gap: 10px; } }
 </style>
 </head>
 <body>
 <div class="app">
   <header>
     <div class="brand">
-      <h1>Сугуру<span>.</span></h1>
-      <small>головоломки для Дали</small>
+      <h1 id="brandTitle">Сугуру<span>.</span></h1>
+      <small><span id="brandSize">9×9</span> · головоломки для Дали</small>
     </div>
-    <button class="icon-btn" id="rulesBtn" aria-label="Правила">?</button>
+    <div class="head-btns">
+      <button class="games-btn" id="gameBtn" aria-label="Выбрать игру"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="2"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2"/></svg>Игры</button>
+      <button class="icon-btn" id="rulesBtn" aria-label="Правила">?</button>
+    </div>
   </header>
 
-  <div class="bar">
-    <div class="seg" role="group" aria-label="Сложность">
-      <button id="lvl-easy" data-lvl="easy" aria-pressed="false">Лёгкая</button>
-      <button id="lvl-medium" data-lvl="medium" aria-pressed="true">Средняя</button>
-      <button id="lvl-hard" data-lvl="hard" aria-pressed="false">Сложная</button>
+  <section class="screen" id="screen-suguru" hidden>
+    <div class="bar">
+      <div class="seg" role="group" aria-label="Сложность">
+        <button id="lvl-easy" data-lvl="easy" aria-pressed="false">Лёгкая</button>
+        <button id="lvl-medium" data-lvl="medium" aria-pressed="true">Средняя</button>
+        <button id="lvl-hard" data-lvl="hard" aria-pressed="false">Сложная</button>
+      </div>
+      <button class="new-btn" id="newBtn">Новая</button>
     </div>
-    <button class="new-btn" id="newBtn">Новая</button>
-  </div>
 
-  <div class="status">
-    <div>Время <b id="timer">0:00</b></div>
-    <div>Решено <b id="solved">0</b></div>
-    <div>Подсказок <b id="hintsUsed">0</b></div>
-  </div>
+    <div class="status">
+      <div>Время <b id="timer">0:00</b></div>
+      <div>Решено <b id="solved">0</b></div>
+      <div>Подсказок <b id="hintsUsed">0</b></div>
+    </div>
 
-  <div class="board-wrap">
-    <div class="board" id="board" aria-label="Поле 9 на 9"></div>
-    <div class="loading" id="loading" hidden>Рисую новое поле…</div>
-  </div>
+    <div class="board-wrap">
+      <div class="board" id="board" aria-label="Поле 9 на 9"></div>
+      <div class="loading" id="loading" hidden>Рисую новое поле…</div>
+    </div>
 
-  <div class="pad" id="pad"></div>
+    <div class="pad" id="pad"></div>
 
-  <div class="tools">
-    <button id="undoBtn"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>Отменить</button>
-    <button id="eraseBtn"><svg viewBox="0 0 24 24"><path d="m7 21-4.3-4.3a1 1 0 0 1 0-1.4l10-10a1 1 0 0 1 1.4 0l5.6 5.6a1 1 0 0 1 0 1.4L11 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg>Стереть</button>
-    <button id="notesBtn" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Заметки</button>
-    <button id="hintBtn" class="hint-btn"><svg viewBox="0 0 24 24"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0 0 12 2Z"/></svg>Подсказка</button>
-  </div>
+    <div class="tools">
+      <button id="undoBtn"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>Отменить</button>
+      <button id="eraseBtn"><svg viewBox="0 0 24 24"><path d="m7 21-4.3-4.3a1 1 0 0 1 0-1.4l10-10a1 1 0 0 1 1.4 0l5.6 5.6a1 1 0 0 1 0 1.4L11 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg>Стереть</button>
+      <button id="notesBtn" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Заметки</button>
+      <button id="hintBtn" class="hint-btn"><svg viewBox="0 0 24 24"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0 0 12 2Z"/></svg>Подсказка</button>
+    </div>
+  </section>
+
+  <section class="screen" id="screen-sudoku" hidden>
+    <div class="bar">
+      <div class="seg" role="group" aria-label="Сложность">
+        <button data-lvl="easy" aria-pressed="false">Лёгкая</button>
+        <button data-lvl="medium" aria-pressed="true">Средняя</button>
+        <button data-lvl="hard" aria-pressed="false">Сложная</button>
+      </div>
+      <button class="new-btn" id="sdNewBtn">Новая</button>
+    </div>
+
+    <div class="status">
+      <div>Время <b id="sdTimer">0:00</b></div>
+      <div>Решено <b id="sdSolved">0</b></div>
+      <div>Подсказок <b id="sdHints">0</b></div>
+    </div>
+
+    <div class="board-wrap sd">
+      <div class="board sd" id="sdBoard" aria-label="Поле 12 на 12"></div>
+      <div class="loading" id="sdLoading" hidden>Рисую новое поле…</div>
+    </div>
+
+    <div class="pad sd" id="sdPad"></div>
+
+    <div class="tools">
+      <button id="sdUndoBtn"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>Отменить</button>
+      <button id="sdEraseBtn"><svg viewBox="0 0 24 24"><path d="m7 21-4.3-4.3a1 1 0 0 1 0-1.4l10-10a1 1 0 0 1 1.4 0l5.6 5.6a1 1 0 0 1 0 1.4L11 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg>Стереть</button>
+      <button id="sdNotesBtn" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Заметки</button>
+      <button id="sdHintBtn" class="hint-btn"><svg viewBox="0 0 24 24"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0 0 12 2Z"/></svg>Подсказка</button>
+    </div>
+  </section>
 </div>
 <div id="sheetRoot"></div>
 <script>
+// ===== Условие получения подсказки =====
+// ЗАГЛУШКА. Сюда встанет условие, которое выберет Руслан.
+// request() должен вернуть true, если подсказку можно выдать.
+const HintGate = {
+  title: 'Подсказка',
+  text: 'Скоро здесь появится особое условие, чтобы получить подсказку. Пока что подсказки бесплатные.',
+  async request() { return true; },
+};
+
+// ===== Общее для всех игр =====
+const $ = id => document.getElementById(id);
+const PRAISE = ['Даля, ты умница!', 'Блестяще, Даля!', 'Ещё одна покорена!', 'Вот это голова!', 'Красиво решено!'];
+const fmt = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+
+// ===== Шторка =====
+function sheet({ title, body, ok, cancel, cls = '' }) {
+  return new Promise(resolve => {
+    const root = $('sheetRoot');
+    root.innerHTML = `<div class="sheet-back"><div class="sheet ${cls}" role="dialog" aria-modal="true">
+      <h2>${title}</h2>${body}
+      <div class="actions">${cancel ? `<button id="sheetCancel">${cancel}</button>` : ''}<button class="primary" id="sheetOk">${ok}</button></div>
+    </div></div>`;
+    const close = v => { root.innerHTML = ''; resolve(v); };
+    $('sheetOk').onclick = () => close(true);
+    if (cancel) $('sheetCancel').onclick = () => close(false);
+    root.querySelector('.sheet-back').addEventListener('pointerdown', e => { if (e.target.classList.contains('sheet-back')) close(false); });
+    $('sheetOk').focus({ preventScroll: true });
+  });
+}
+
+function hearts() {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const cv = document.createElement('canvas'); cv.className = 'hearts'; document.body.appendChild(cv);
+  const dpr = devicePixelRatio || 1, W = innerWidth, H = innerHeight;
+  cv.width = W * dpr; cv.height = H * dpr;
+  const ctx = cv.getContext('2d'); ctx.scale(dpr, dpr);
+  const color = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#d6457a';
+  const ps = Array.from({ length: 36 }, () => ({ x: Math.random() * W, y: H + Math.random() * H * .4, s: 8 + Math.random() * 14, v: 2 + Math.random() * 3, w: Math.random() * 6, a: 1 }));
+  let t = 0;
+  (function frame() {
+    ctx.clearRect(0, 0, W, H); t++;
+    for (const p of ps) {
+      p.y -= p.v; p.x += Math.sin((t + p.w * 20) / 18) * .8; if (p.y < H * .25) p.a -= .02;
+      ctx.globalAlpha = Math.max(0, p.a); ctx.fillStyle = color;
+      ctx.beginPath(); const s = p.s;
+      ctx.moveTo(p.x, p.y + s * .3);
+      ctx.bezierCurveTo(p.x, p.y, p.x - s / 2, p.y, p.x - s / 2, p.y + s * .3);
+      ctx.bezierCurveTo(p.x - s / 2, p.y + s * .6, p.x, p.y + s * .75, p.x, p.y + s);
+      ctx.bezierCurveTo(p.x, p.y + s * .75, p.x + s / 2, p.y + s * .6, p.x + s / 2, p.y + s * .3);
+      ctx.bezierCurveTo(p.x + s / 2, p.y, p.x, p.y, p.x, p.y + s * .3);
+      ctx.fill();
+    }
+    if (t < 220) requestAnimationFrame(frame); else cv.remove();
+  })();
+}
+
 // ===== Движок Сугуру: генератор, решатель, логические шаги =====
 const Suguru = (() => {
   const N = 9, C = N * N;
@@ -411,319 +542,265 @@ const Suguru = (() => {
   return { N, C, NB, buildGeo, solve, generate, candidatesFor, nextStep, logicSolve };
 })();
 
-// ===== Условие получения подсказки =====
-// ЗАГЛУШКА. Сюда встанет условие, которое выберет Руслан.
-// request() должен вернуть true, если подсказку можно выдать.
-const HintGate = {
-  title: 'Подсказка',
-  text: 'Скоро здесь появится особое условие, чтобы получить подсказку. Пока что подсказки бесплатные.',
-  async request() { return true; },
-};
+// ===== Игра Сугуру 9×9 =====
+const SuguruApp = (() => {
+  const KEY = 'suguru-dalya-v1';
+  const LVL_NAME = { easy: 'Лёгкая', medium: 'Средняя', hard: 'Сложная' };
 
-// ===== Игра =====
-const $ = id => document.getElementById(id);
-const KEY = 'suguru-dalya-v1';
-const LVL_NAME = { easy: 'Лёгкая', medium: 'Средняя', hard: 'Сложная' };
-const PRAISE = ['Даля, ты умница!', 'Блестяще, Даля!', 'Ещё одна покорена!', 'Вот это голова!', 'Красиво решено!'];
+  let S = null;      // текущая партия
+  let geo = null;    // геометрия областей
+  let stats = { solved: { easy: 0, medium: 0, hard: 0 }, best: {} };
+  let level = 'medium';
+  let cells = [];
 
-let S = null;      // текущая партия
-let geo = null;    // геометрия областей
-let stats = { solved: { easy: 0, medium: 0, hard: 0 }, best: {} };
-let level = 'medium';
-let cells = [];
-
-function load() {
-  try {
-    const d = JSON.parse(localStorage.getItem(KEY) || 'null');
-    if (d) { stats = d.stats || stats; level = d.level || level; if (d.game && d.game.p) S = d.game; }
-  } catch (e) {}
-}
-function save() {
-  try { localStorage.setItem(KEY, JSON.stringify({ stats, level, game: S })); } catch (e) {}
-}
-
-function newGame(lvl = level) {
-  level = lvl;
-  $('loading').hidden = false;
-  setTimeout(() => {
-    const p = Suguru.generate(lvl);
-    S = { p, vals: p.givens.slice(), notes: new Array(81).fill(0), elapsed: 0, hints: 0, done: false, sel: -1, history: [] };
-    $('loading').hidden = true;
-    setup(); save();
-  }, 30);
-}
-
-function setup() {
-  geo = Suguru.buildGeo(S.p.reg);
-  const board = $('board');
-  board.innerHTML = '';
-  cells = [];
-  for (let i = 0; i < 81; i++) {
-    const d = document.createElement('div');
-    d.className = 'cell';
-    d.addEventListener('pointerdown', e => { e.preventDefault(); select(i); });
-    board.appendChild(d); cells.push(d);
+  function load() {
+    try {
+      const d = JSON.parse(localStorage.getItem(KEY) || 'null');
+      if (d) { stats = d.stats || stats; level = d.level || level; if (d.game && d.game.p) S = d.game; }
+    } catch (e) {}
   }
-  board.appendChild(drawLines());
-  document.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.lvl === S.p.difficulty)));
-  render();
-}
-
-function drawLines() {
-  const ns = 'http://www.w3.org/2000/svg', reg = S.p.reg;
-  const svg = document.createElementNS(ns, 'svg');
-  svg.setAttribute('viewBox', '0 0 9 9'); svg.setAttribute('class', 'lines'); svg.setAttribute('preserveAspectRatio', 'none');
-  const line = (x1, y1, x2, y2, cls) => {
-    const l = document.createElementNS(ns, 'line');
-    l.setAttribute('x1', x1); l.setAttribute('y1', y1); l.setAttribute('x2', x2); l.setAttribute('y2', y2);
-    l.setAttribute('class', cls); return l;
-  };
-  const thick = [];
-  for (let r = 0; r < 9; r++) for (let c = 0; c < 9; c++) {
-    const i = r * 9 + c;
-    if (c < 8) { const t = reg[i] !== reg[i + 1];
-      const l = line(c + 1, r, c + 1, r + 1, t ? 'thick' : 'thin'); (t ? thick.push(l) : svg.appendChild(l)); }
-    if (r < 8) { const t = reg[i] !== reg[i + 9];
-      const l = line(c, r + 1, c + 1, r + 1, t ? 'thick' : 'thin'); (t ? thick.push(l) : svg.appendChild(l)); }
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify({ stats, level, game: S })); } catch (e) {}
   }
-  thick.forEach(l => svg.appendChild(l));
-  const f = document.createElementNS(ns, 'rect');
-  f.setAttribute('x', 0); f.setAttribute('y', 0); f.setAttribute('width', 9); f.setAttribute('height', 9); f.setAttribute('class', 'frame');
-  svg.appendChild(f);
-  return svg;
-}
 
-function conflicts() {
-  const bad = new Set();
-  for (let i = 0; i < 81; i++) {
-    const v = S.vals[i]; if (!v) continue;
-    for (const p of geo.peers[i]) if (S.vals[p] === v) { bad.add(i); bad.add(p); }
+  function newGame(lvl = level) {
+    level = lvl;
+    $('loading').hidden = false;
+    setTimeout(() => {
+      const p = Suguru.generate(lvl);
+      S = { p, vals: p.givens.slice(), notes: new Array(81).fill(0), elapsed: 0, hints: 0, done: false, sel: -1, history: [] };
+      $('loading').hidden = true;
+      setup(); save();
+    }, 30);
   }
-  return bad;
-}
 
-function render() {
-  const bad = conflicts(), sel = S.sel, selVal = sel >= 0 ? S.vals[sel] : 0;
-  for (let i = 0; i < 81; i++) {
-    const d = cells[i], v = S.vals[i];
-    d.classList.toggle('given', !!S.p.givens[i]);
-    d.classList.toggle('sel', i === sel);
-    d.classList.toggle('area', sel >= 0 && i !== sel && S.p.reg[i] === S.p.reg[sel]);
-    d.classList.toggle('same', sel >= 0 && i !== sel && !!selVal && v === selVal);
-    d.classList.toggle('bad', bad.has(i) && !S.p.givens[i]);
-    if (v) d.textContent = v;
-    else if (S.notes[i]) {
-      let h = '<div class="notes">';
-      for (let k = 1; k <= 5; k++) h += `<span>${S.notes[i] & (1 << (k - 1)) ? k : ''}</span>`;
-      d.innerHTML = h + '</div>';
-    } else d.textContent = '';
+  function setup() {
+    geo = Suguru.buildGeo(S.p.reg);
+    const board = $('board');
+    board.innerHTML = '';
+    cells = [];
+    for (let i = 0; i < 81; i++) {
+      const d = document.createElement('div');
+      d.className = 'cell';
+      d.addEventListener('pointerdown', e => { e.preventDefault(); select(i); });
+      board.appendChild(d); cells.push(d);
+    }
+    board.appendChild(drawLines());
+    document.querySelectorAll('#screen-suguru .seg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.lvl === S.p.difficulty)));
+    render();
   }
-  // цифры, которые подходят по размеру области
-  const max = sel >= 0 ? geo.size[sel] : 5;
-  const locked = sel < 0 || !!S.p.givens[sel] || S.done;
-  document.querySelectorAll('#pad button').forEach((b, k) => { b.disabled = locked || k + 1 > max; });
-  $('pad').classList.toggle('noting', notesMode);
-  $('hintsUsed').textContent = S.hints;
-  $('solved').textContent = stats.solved.easy + stats.solved.medium + stats.solved.hard;
-  $('timer').textContent = fmt(S.elapsed);
-}
 
-const fmt = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-
-function select(i) { S.sel = i; render(); }
-
-function snapshot() {
-  S.history.push([S.vals.slice(), S.notes.slice()]);
-  if (S.history.length > 300) S.history.shift();
-}
-
-let notesMode = false;
-function input(n) {
-  const i = S.sel;
-  if (i < 0 || S.done || S.p.givens[i] || n > geo.size[i]) return;
-  snapshot();
-  if (notesMode && !S.vals[i]) {
-    S.notes[i] ^= 1 << (n - 1);
-  } else {
-    S.vals[i] = S.vals[i] === n ? 0 : n;
-    if (S.vals[i]) for (const p of geo.peers[i]) S.notes[p] &= ~(1 << (n - 1));
+  function drawLines() {
+    const ns = 'http://www.w3.org/2000/svg', reg = S.p.reg;
+    const svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', '0 0 9 9'); svg.setAttribute('class', 'lines'); svg.setAttribute('preserveAspectRatio', 'none');
+    const line = (x1, y1, x2, y2, cls) => {
+      const l = document.createElementNS(ns, 'line');
+      l.setAttribute('x1', x1); l.setAttribute('y1', y1); l.setAttribute('x2', x2); l.setAttribute('y2', y2);
+      l.setAttribute('class', cls); return l;
+    };
+    const thick = [];
+    for (let r = 0; r < 9; r++) for (let c = 0; c < 9; c++) {
+      const i = r * 9 + c;
+      if (c < 8) { const t = reg[i] !== reg[i + 1];
+        const l = line(c + 1, r, c + 1, r + 1, t ? 'thick' : 'thin'); (t ? thick.push(l) : svg.appendChild(l)); }
+      if (r < 8) { const t = reg[i] !== reg[i + 9];
+        const l = line(c, r + 1, c + 1, r + 1, t ? 'thick' : 'thin'); (t ? thick.push(l) : svg.appendChild(l)); }
+    }
+    thick.forEach(l => svg.appendChild(l));
+    const f = document.createElementNS(ns, 'rect');
+    f.setAttribute('x', 0); f.setAttribute('y', 0); f.setAttribute('width', 9); f.setAttribute('height', 9); f.setAttribute('class', 'frame');
+    svg.appendChild(f);
+    return svg;
   }
-  afterMove();
-}
-function erase() {
-  const i = S.sel;
-  if (i < 0 || S.done || S.p.givens[i] || (!S.vals[i] && !S.notes[i])) return;
-  snapshot(); S.vals[i] = 0; S.notes[i] = 0; afterMove();
-}
-function undo() {
-  if (S.done || !S.history.length) return;
-  [S.vals, S.notes] = S.history.pop(); afterMove();
-}
-function afterMove() {
-  render(); save();
-  if (S.vals.every((v, i) => v === S.p.solution[i])) win();
-}
 
-// ===== Подсказки =====
-async function askHint() {
-  if (S.done) return;
-  const go = await sheet({ title: HintGate.title, body: `<p>${HintGate.text}</p>`, ok: 'Получить подсказку', cancel: 'Сама справлюсь' });
-  if (!go || !(await HintGate.request())) return;
-  S.hints++; save(); render();
-  showHint();
-}
+  function conflicts() {
+    const bad = new Set();
+    for (let i = 0; i < 81; i++) {
+      const v = S.vals[i]; if (!v) continue;
+      for (const p of geo.peers[i]) if (S.vals[p] === v) { bad.add(i); bad.add(p); }
+    }
+    return bad;
+  }
 
-function showHint() {
-  const sol = S.p.solution;
-  // сначала ошибки
-  const wrong = S.vals.findIndex((v, i) => v && v !== sol[i]);
-  if (wrong >= 0) {
-    flash(wrong);
-    sheet({ title: 'Тут закралась ошибка', body: '<p>В выделенной клетке стоит неверное число. Если его убрать, дальше пойдёт легче.</p>', ok: 'Стереть', cancel: 'Оставить' })
-      .then(ok => { if (ok) { snapshot(); S.vals[wrong] = 0; afterMove(); } });
-    return;
+  function render() {
+    const bad = conflicts(), sel = S.sel, selVal = sel >= 0 ? S.vals[sel] : 0;
+    for (let i = 0; i < 81; i++) {
+      const d = cells[i], v = S.vals[i];
+      d.classList.toggle('given', !!S.p.givens[i]);
+      d.classList.toggle('sel', i === sel);
+      d.classList.toggle('area', sel >= 0 && i !== sel && S.p.reg[i] === S.p.reg[sel]);
+      d.classList.toggle('same', sel >= 0 && i !== sel && !!selVal && v === selVal);
+      d.classList.toggle('bad', bad.has(i) && !S.p.givens[i]);
+      if (v) d.textContent = v;
+      else if (S.notes[i]) {
+        let h = '<div class="notes">';
+        for (let k = 1; k <= 5; k++) h += `<span>${S.notes[i] & (1 << (k - 1)) ? k : ''}</span>`;
+        d.innerHTML = h + '</div>';
+      } else d.textContent = '';
+    }
+    // цифры, которые подходят по размеру области
+    const max = sel >= 0 ? geo.size[sel] : 5;
+    const locked = sel < 0 || !!S.p.givens[sel] || S.done;
+    document.querySelectorAll('#pad button').forEach((b, k) => { b.disabled = locked || k + 1 > max; });
+    $('pad').classList.toggle('noting', notesMode);
+    $('hintsUsed').textContent = S.hints;
+    $('solved').textContent = stats.solved.easy + stats.solved.medium + stats.solved.hard;
+    $('timer').textContent = fmt(S.elapsed);
   }
-  const grid = S.vals.slice(), cd = Suguru.candidatesFor(geo, grid);
-  let step = null, usedElim = false;
-  for (let guard = 0; guard < 400; guard++) {
-    const st = Suguru.nextStep(geo, grid, cd, 2);
-    if (!st) break;
-    if (st.type === 'elim') { cd[st.cell] &= ~(1 << (st.value - 1)); usedElim = true; continue; }
-    step = st; break;
+
+  function select(i) { S.sel = i; render(); }
+
+  function snapshot() {
+    S.history.push([S.vals.slice(), S.notes.slice()]);
+    if (S.history.length > 300) S.history.shift();
   }
-  let i, v, text;
-  if (step) {
-    i = step.cell; v = step.value;
-    const n = geo.size[i];
-    if (step.type === 'naked' && !usedElim) {
-      const others = []; for (let k = 1; k <= n; k++) if (k !== v) others.push(k);
-      text = n === 1
-        ? 'Эта клетка сама по себе область, значит тут 1.'
-        : `Область из ${n} клеток, значит здесь может быть только 1–${n}. ${others.length > 1 ? 'Числа ' + others.join(', ') + ' уже' : 'Число ' + others[0] + ' уже'} стоят в этой области или касаются клетки. Остаётся ${v}.`;
-    } else if (step.type === 'hidden' && !usedElim) {
-      text = `Посмотри на выделенную область: число ${v} в ней больше никуда не встаёт. В остальных свободных клетках оно касалось бы такой же ${v}.`;
+
+  let notesMode = false;
+  function input(n) {
+    const i = S.sel;
+    if (i < 0 || S.done || S.p.givens[i] || n > geo.size[i]) return;
+    snapshot();
+    if (notesMode && !S.vals[i]) {
+      S.notes[i] ^= 1 << (n - 1);
     } else {
-      text = `Здесь ${v}. Чтобы это увидеть, посмотри на соседние области: если все места для какого-то числа в области касаются одной клетки, в этой клетке такого числа быть не может.`;
+      S.vals[i] = S.vals[i] === n ? 0 : n;
+      if (S.vals[i]) for (const p of geo.peers[i]) S.notes[p] &= ~(1 << (n - 1));
     }
-  } else {
-    const empty = []; for (let k = 0; k < 81; k++) if (!S.vals[k]) empty.push(k);
-    i = empty[Math.random() * empty.length | 0]; v = sol[i];
-    text = `Здесь стоит ${v}.`;
+    afterMove();
   }
-  S.sel = i; render(); flash(i);
-  sheet({ title: 'Подсказка', body: `<p>${text}</p>`, ok: `Поставить ${v}`, cancel: 'Дальше сама' })
-    .then(ok => { if (ok && !S.done) { snapshot(); S.vals[i] = v; afterMove(); } });
-}
+  function erase() {
+    const i = S.sel;
+    if (i < 0 || S.done || S.p.givens[i] || (!S.vals[i] && !S.notes[i])) return;
+    snapshot(); S.vals[i] = 0; S.notes[i] = 0; afterMove();
+  }
+  function undo() {
+    if (S.done || !S.history.length) return;
+    [S.vals, S.notes] = S.history.pop(); afterMove();
+  }
+  function afterMove() {
+    render(); save();
+    if (S.vals.every((v, i) => v === S.p.solution[i])) win();
+  }
 
-function flash(i) {
-  const d = cells[i]; d.classList.remove('hint'); void d.offsetWidth; d.classList.add('hint');
-  setTimeout(() => d.classList.remove('hint'), 3800);
-}
+  // ===== Подсказки =====
+  async function askHint() {
+    if (S.done) return;
+    const go = await sheet({ title: HintGate.title, body: `<p>${HintGate.text}</p>`, ok: 'Получить подсказку', cancel: 'Сама справлюсь' });
+    if (!go || !(await HintGate.request())) return;
+    S.hints++; save(); render();
+    showHint();
+  }
 
-// ===== Шторка =====
-function sheet({ title, body, ok, cancel, cls = '' }) {
-  return new Promise(resolve => {
-    const root = $('sheetRoot');
-    root.innerHTML = `<div class="sheet-back"><div class="sheet ${cls}" role="dialog" aria-modal="true">
-      <h2>${title}</h2>${body}
-      <div class="actions">${cancel ? `<button id="sheetCancel">${cancel}</button>` : ''}<button class="primary" id="sheetOk">${ok}</button></div>
-    </div></div>`;
-    const close = v => { root.innerHTML = ''; resolve(v); };
-    $('sheetOk').onclick = () => close(true);
-    if (cancel) $('sheetCancel').onclick = () => close(false);
-    root.querySelector('.sheet-back').addEventListener('pointerdown', e => { if (e.target.classList.contains('sheet-back')) close(false); });
-    $('sheetOk').focus({ preventScroll: true });
-  });
-}
-
-function rules() {
-  const ex = (cellsSvg) => `<svg viewBox="0 0 64 64">${cellsSvg}</svg>`;
-  const box = (x, y, t, c) => `<rect x="${x}" y="${y}" width="20" height="20" fill="var(--area)" stroke="var(--line)" stroke-width="1"/>
-    <text x="${x + 10}" y="${y + 15}" text-anchor="middle" font-size="13" font-family="Unbounded, sans-serif" fill="${c || 'var(--ink)'}">${t}</text>`;
-  sheet({
-    title: 'Как играть',
-    body: `
-      <div class="rule">${ex(box(12, 12, 1) + box(32, 12, 3) + box(12, 32, 4) + box(32, 32, 2) + '<rect x="12" y="12" width="40" height="40" fill="none" stroke="var(--ink)" stroke-width="2.5"/>')}
-        <p>Поле разбито на области. В области из N клеток стоят числа от 1 до N, каждое по одному разу.</p></div>
-      <div class="rule">${ex(box(12, 12, 2, 'var(--error)') + box(32, 32, 2, 'var(--error)') + box(32, 12, 1) + box(12, 32, 3))}
-        <p>Одинаковые числа не могут касаться друг друга, даже уголком.</p></div>
-      <p class="muted">Нажми на клетку, потом на цифру. В режиме «Заметки» можно ставить маленькие пометки. Клетки, которые нарушают правила, подсвечиваются красным.</p>`,
-    ok: 'Понятно',
-  });
-}
-
-function win() {
-  S.done = true;
-  stats.solved[S.p.difficulty] = (stats.solved[S.p.difficulty] || 0) + 1;
-  const best = stats.best[S.p.difficulty];
-  const record = !S.hints && (!best || S.elapsed < best);
-  if (record) stats.best[S.p.difficulty] = S.elapsed;
-  save(); render(); hearts();
-  sheet({
-    cls: 'win',
-    title: PRAISE[Math.random() * PRAISE.length | 0],
-    body: `<div class="stats">
-      <div><span>Время</span><b>${fmt(S.elapsed)}</b></div>
-      <div><span>Уровень</span><b>${LVL_NAME[S.p.difficulty]}</b></div>
-      <div><span>Подсказок</span><b>${S.hints}</b></div></div>
-      ${record ? '<p class="muted">Новый рекорд без подсказок на этом уровне.</p>' : ''}`,
-    ok: 'Ещё одну', cancel: 'Полюбоваться',
-  }).then(ok => { if (ok) newGame(S.p.difficulty); });
-}
-
-function hearts() {
-  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  const cv = document.createElement('canvas'); cv.className = 'hearts'; document.body.appendChild(cv);
-  const dpr = devicePixelRatio || 1, W = innerWidth, H = innerHeight;
-  cv.width = W * dpr; cv.height = H * dpr;
-  const ctx = cv.getContext('2d'); ctx.scale(dpr, dpr);
-  const color = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#d6457a';
-  const ps = Array.from({ length: 36 }, () => ({ x: Math.random() * W, y: H + Math.random() * H * .4, s: 8 + Math.random() * 14, v: 2 + Math.random() * 3, w: Math.random() * 6, a: 1 }));
-  let t = 0;
-  (function frame() {
-    ctx.clearRect(0, 0, W, H); t++;
-    for (const p of ps) {
-      p.y -= p.v; p.x += Math.sin((t + p.w * 20) / 18) * .8; if (p.y < H * .25) p.a -= .02;
-      ctx.globalAlpha = Math.max(0, p.a); ctx.fillStyle = color;
-      ctx.beginPath(); const s = p.s;
-      ctx.moveTo(p.x, p.y + s * .3);
-      ctx.bezierCurveTo(p.x, p.y, p.x - s / 2, p.y, p.x - s / 2, p.y + s * .3);
-      ctx.bezierCurveTo(p.x - s / 2, p.y + s * .6, p.x, p.y + s * .75, p.x, p.y + s);
-      ctx.bezierCurveTo(p.x, p.y + s * .75, p.x + s / 2, p.y + s * .6, p.x + s / 2, p.y + s * .3);
-      ctx.bezierCurveTo(p.x + s / 2, p.y, p.x, p.y, p.x, p.y + s * .3);
-      ctx.fill();
+  function showHint() {
+    const sol = S.p.solution;
+    // сначала ошибки
+    const wrong = S.vals.findIndex((v, i) => v && v !== sol[i]);
+    if (wrong >= 0) {
+      flash(wrong);
+      sheet({ title: 'Тут закралась ошибка', body: '<p>В выделенной клетке стоит неверное число. Если его убрать, дальше пойдёт легче.</p>', ok: 'Стереть', cancel: 'Оставить' })
+        .then(ok => { if (ok) { snapshot(); S.vals[wrong] = 0; afterMove(); } });
+      return;
     }
-    if (t < 220) requestAnimationFrame(frame); else cv.remove();
-  })();
-}
-
-// ===== Запуск =====
-function init() {
-  const pad = $('pad');
-  for (let k = 1; k <= 5; k++) {
-    const b = document.createElement('button'); b.textContent = k; b.id = 'pad' + k;
-    b.addEventListener('click', () => input(k)); pad.appendChild(b);
+    const grid = S.vals.slice(), cd = Suguru.candidatesFor(geo, grid);
+    let step = null, usedElim = false;
+    for (let guard = 0; guard < 400; guard++) {
+      const st = Suguru.nextStep(geo, grid, cd, 2);
+      if (!st) break;
+      if (st.type === 'elim') { cd[st.cell] &= ~(1 << (st.value - 1)); usedElim = true; continue; }
+      step = st; break;
+    }
+    let i, v, text;
+    if (step) {
+      i = step.cell; v = step.value;
+      const n = geo.size[i];
+      if (step.type === 'naked' && !usedElim) {
+        const others = []; for (let k = 1; k <= n; k++) if (k !== v) others.push(k);
+        text = n === 1
+          ? 'Эта клетка сама по себе область, значит тут 1.'
+          : `Область из ${n} клеток, значит здесь может быть только 1–${n}. ${others.length > 1 ? 'Числа ' + others.join(', ') + ' уже' : 'Число ' + others[0] + ' уже'} стоят в этой области или касаются клетки. Остаётся ${v}.`;
+      } else if (step.type === 'hidden' && !usedElim) {
+        text = `Посмотри на выделенную область: число ${v} в ней больше никуда не встаёт. В остальных свободных клетках оно касалось бы такой же ${v}.`;
+      } else {
+        text = `Здесь ${v}. Чтобы это увидеть, посмотри на соседние области: если все места для какого-то числа в области касаются одной клетки, в этой клетке такого числа быть не может.`;
+      }
+    } else {
+      const empty = []; for (let k = 0; k < 81; k++) if (!S.vals[k]) empty.push(k);
+      i = empty[Math.random() * empty.length | 0]; v = sol[i];
+      text = `Здесь стоит ${v}.`;
+    }
+    S.sel = i; render(); flash(i);
+    sheet({ title: 'Подсказка', body: `<p>${text}</p>`, ok: `Поставить ${v}`, cancel: 'Дальше сама' })
+      .then(ok => { if (ok && !S.done) { snapshot(); S.vals[i] = v; afterMove(); } });
   }
-  document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => {
-    if (b.dataset.lvl === S.p.difficulty && !S.done) return;
-    const started = !S.done && S.vals.some((v, i) => v && !S.p.givens[i]);
-    if (!started) return newGame(b.dataset.lvl);
-    sheet({ title: 'Начать новую?', body: `<p>Текущая партия не решена. Начать новую, уровень «${LVL_NAME[b.dataset.lvl]}»?</p>`, ok: 'Начать', cancel: 'Остаться' })
-      .then(ok => ok && newGame(b.dataset.lvl));
-  }));
-  $('newBtn').onclick = () => {
-    const started = !S.done && S.vals.some((v, i) => v && !S.p.givens[i]);
-    if (!started) return newGame(S.p.difficulty);
-    sheet({ title: 'Начать новую?', body: '<p>Текущая партия не решена, прогресс пропадёт.</p>', ok: 'Начать', cancel: 'Остаться' })
-      .then(ok => ok && newGame(S.p.difficulty));
-  };
-  $('undoBtn').onclick = undo;
-  $('eraseBtn').onclick = erase;
-  $('notesBtn').onclick = () => { notesMode = !notesMode; $('notesBtn').setAttribute('aria-pressed', String(notesMode)); render(); };
-  $('hintBtn').onclick = askHint;
-  $('rulesBtn').onclick = rules;
-  document.addEventListener('keydown', e => {
-    if ($('sheetRoot').innerHTML) return;
+
+  function flash(i) {
+    const d = cells[i]; d.classList.remove('hint'); void d.offsetWidth; d.classList.add('hint');
+    setTimeout(() => d.classList.remove('hint'), 3800);
+  }
+
+  function rules() {
+    const ex = (cellsSvg) => `<svg viewBox="0 0 64 64">${cellsSvg}</svg>`;
+    const box = (x, y, t, c) => `<rect x="${x}" y="${y}" width="20" height="20" fill="var(--area)" stroke="var(--line)" stroke-width="1"/>
+      <text x="${x + 10}" y="${y + 15}" text-anchor="middle" font-size="13" font-family="Unbounded, sans-serif" fill="${c || 'var(--ink)'}">${t}</text>`;
+    sheet({
+      title: 'Как играть',
+      body: `
+        <div class="rule">${ex(box(12, 12, 1) + box(32, 12, 3) + box(12, 32, 4) + box(32, 32, 2) + '<rect x="12" y="12" width="40" height="40" fill="none" stroke="var(--ink)" stroke-width="2.5"/>')}
+          <p>Поле разбито на области. В области из N клеток стоят числа от 1 до N, каждое по одному разу.</p></div>
+        <div class="rule">${ex(box(12, 12, 2, 'var(--error)') + box(32, 32, 2, 'var(--error)') + box(32, 12, 1) + box(12, 32, 3))}
+          <p>Одинаковые числа не могут касаться друг друга, даже уголком.</p></div>
+        <p class="muted">Нажми на клетку, потом на цифру. В режиме «Заметки» можно ставить маленькие пометки. Клетки, которые нарушают правила, подсвечиваются красным.</p>`,
+      ok: 'Понятно',
+    });
+  }
+
+  function win() {
+    S.done = true;
+    stats.solved[S.p.difficulty] = (stats.solved[S.p.difficulty] || 0) + 1;
+    const best = stats.best[S.p.difficulty];
+    const record = !S.hints && (!best || S.elapsed < best);
+    if (record) stats.best[S.p.difficulty] = S.elapsed;
+    save(); render(); hearts();
+    sheet({
+      cls: 'win',
+      title: PRAISE[Math.random() * PRAISE.length | 0],
+      body: `<div class="stats">
+        <div><span>Время</span><b>${fmt(S.elapsed)}</b></div>
+        <div><span>Уровень</span><b>${LVL_NAME[S.p.difficulty]}</b></div>
+        <div><span>Подсказок</span><b>${S.hints}</b></div></div>
+        ${record ? '<p class="muted">Новый рекорд без подсказок на этом уровне.</p>' : ''}`,
+      ok: 'Ещё одну', cancel: 'Полюбоваться',
+    }).then(ok => { if (ok) newGame(S.p.difficulty); });
+  }
+
+  // ===== Запуск =====
+  function bind() {
+    const pad = $('pad');
+    for (let k = 1; k <= 5; k++) {
+      const b = document.createElement('button'); b.textContent = k; b.id = 'pad' + k;
+      b.addEventListener('click', () => input(k)); pad.appendChild(b);
+    }
+    document.querySelectorAll('#screen-suguru .seg button').forEach(b => b.addEventListener('click', () => {
+      if (b.dataset.lvl === S.p.difficulty && !S.done) return;
+      const started = !S.done && S.vals.some((v, i) => v && !S.p.givens[i]);
+      if (!started) return newGame(b.dataset.lvl);
+      sheet({ title: 'Начать новую?', body: `<p>Текущая партия не решена. Начать новую, уровень «${LVL_NAME[b.dataset.lvl]}»?</p>`, ok: 'Начать', cancel: 'Остаться' })
+        .then(ok => ok && newGame(b.dataset.lvl));
+    }));
+    $('newBtn').onclick = () => {
+      const started = !S.done && S.vals.some((v, i) => v && !S.p.givens[i]);
+      if (!started) return newGame(S.p.difficulty);
+      sheet({ title: 'Начать новую?', body: '<p>Текущая партия не решена, прогресс пропадёт.</p>', ok: 'Начать', cancel: 'Остаться' })
+        .then(ok => ok && newGame(S.p.difficulty));
+    };
+    $('undoBtn').onclick = undo;
+    $('eraseBtn').onclick = erase;
+    $('notesBtn').onclick = () => { notesMode = !notesMode; $('notesBtn').setAttribute('aria-pressed', String(notesMode)); render(); };
+    $('hintBtn').onclick = askHint;
+  }
+  function keydown(e) {
+    if (!S) return;
     if (e.key >= '1' && e.key <= '5') input(+e.key);
     else if (e.key === 'Backspace' || e.key === 'Delete' || e.key === '0') erase();
     else if (e.key === 'n' || e.key === 'т') $('notesBtn').click();
@@ -733,15 +810,552 @@ function init() {
       const [dr, dc] = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] }[e.key];
       select(((r + dr + 9) % 9) * 9 + (c + dc + 9) % 9); e.preventDefault();
     }
-  });
-  setInterval(() => {
-    if (S && !S.done && !document.hidden && $('loading').hidden) { S.elapsed++; $('timer').textContent = fmt(S.elapsed); if (S.elapsed % 10 === 0) save(); }
-  }, 1000);
+  }
+  function tick() {
+    if (S && !S.done && $('loading').hidden) { S.elapsed++; $('timer').textContent = fmt(S.elapsed); if (S.elapsed % 10 === 0) save(); }
+  }
+  let shown = false;
+  function show() {
+    if (shown) return;
+    shown = true; bind();
+    if (S) { S.sel = -1; setup(); } else newGame(level);
+    try { if (!localStorage.getItem(KEY + '-seen')) { localStorage.setItem(KEY + '-seen', '1'); rules(); } } catch (e) {}
+  }
   load();
-  if (S) { S.sel = -1; setup(); } else newGame(level);
-  try { if (!localStorage.getItem(KEY + '-seen')) { localStorage.setItem(KEY + '-seen', '1'); rules(); } } catch (e) {}
+  return { show, tick, keydown, rules, solved: () => stats.solved.easy + stats.solved.medium + stats.solved.hard };
+})();
+
+// ===== Движок судоку 12×12: генератор, решатель, логические шаги =====
+// Блоки 3 строки × 4 столбца, символы 1–9, A, B, C (значения 1..12)
+const Sudoku12 = (() => {
+  const N = 12, C = N * N, BR = 3, BC = 4, ALL = (1 << N) - 1;
+  const SYM = ['', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C'];
+  const rowOf = i => (i / N) | 0, colOf = i => i % N;
+  const boxOf = i => ((rowOf(i) / BR) | 0) * (N / BC) + ((colOf(i) / BC) | 0);
+  const UNITS = [];
+  for (let r = 0; r < N; r++) UNITS.push({ kind: 'row', idx: r, cells: [...Array(N).keys()].map(c => r * N + c) });
+  for (let c = 0; c < N; c++) UNITS.push({ kind: 'col', idx: c, cells: [...Array(N).keys()].map(r => r * N + c) });
+  for (let b = 0; b < N; b++) UNITS.push({ kind: 'box', idx: b, cells: [...Array(C).keys()].filter(i => boxOf(i) === b) });
+  const ROWS = UNITS.slice(0, N), COLS = UNITS.slice(N, 2 * N), BOXES = UNITS.slice(2 * N);
+  const PEERS = [];
+  for (let i = 0; i < C; i++) {
+    const s = new Set([...ROWS[rowOf(i)].cells, ...COLS[colOf(i)].cells, ...BOXES[boxOf(i)].cells]);
+    s.delete(i); PEERS.push([...s]);
+  }
+  const bitCount = m => { let n = 0; while (m) { m &= m - 1; n++; } return n; };
+  const lowBit = m => 31 - Math.clz32(m & -m);
+  const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [a[i], a[j]] = [a[j], a[i]]; } return a; };
+
+  // --- Перебор с распространением одиночек, считает решения до limit ---
+  function solve(grid, { limit = 2, random = false, maxNodes = 100000 } = {}) {
+    let nodes = 0, count = 0, first = null, aborted = false;
+    const val = new Array(C).fill(0), cand = new Array(C).fill(ALL);
+    function assign(v, cd, i, d) {
+      v[i] = d; cd[i] = 1 << (d - 1);
+      const b = ~(1 << (d - 1));
+      for (const p of PEERS[i]) {
+        if (v[p]) { if (v[p] === d) return false; continue; }
+        cd[p] &= b; if (!cd[p]) return false;
+      }
+      return true;
+    }
+    function propagate(v, cd) {
+      let changed = true;
+      while (changed) {
+        changed = false;
+        for (let i = 0; i < C; i++) if (!v[i]) {
+          const m = cd[i];
+          if (!m) return false;
+          if (!(m & (m - 1))) { if (!assign(v, cd, i, lowBit(m) + 1)) return false; changed = true; }
+        }
+        for (const U of UNITS) {
+          let once = 0, twice = 0, done = 0;
+          for (const i of U.cells) {
+            if (v[i]) { done |= 1 << (v[i] - 1); continue; }
+            twice |= once & cd[i]; once |= cd[i];
+          }
+          if ((once | done) !== ALL) return false;
+          let single = once & ~twice & ~done;
+          while (single) {
+            const d = lowBit(single) + 1; single &= single - 1;
+            const w = U.cells.find(i => !v[i] && (cd[i] & (1 << (d - 1))));
+            if (w === undefined || !assign(v, cd, w, d)) return false;
+            changed = true;
+          }
+        }
+      }
+      return true;
+    }
+    function rec(v, cd) {
+      if (++nodes > maxNodes) { aborted = true; return; }
+      if (!propagate(v, cd)) return;
+      let best = -1, bc = 99;
+      for (let i = 0; i < C; i++) if (!v[i]) { const k = bitCount(cd[i]); if (k < bc) { bc = k; best = i; if (k === 2) break; } }
+      if (best < 0) { count++; if (!first) first = v.slice(); return; }
+      const ds = []; for (let m = cd[best]; m; m &= m - 1) ds.push(lowBit(m) + 1);
+      if (random) shuffle(ds);
+      for (const d of ds) {
+        const v2 = v.slice(), c2 = cd.slice();
+        if (assign(v2, c2, best, d)) rec(v2, c2);
+        if (count >= limit || aborted) return;
+      }
+    }
+    let ok = true;
+    for (let i = 0; i < C; i++) if (grid[i] && !assign(val, cand, i, grid[i])) { ok = false; break; }
+    if (ok) rec(val, cand);
+    return { count, solution: first, aborted };
+  }
+
+  // --- Логический решатель «как человек» ---
+  // level 1: одиночки; level 2: + блок/линия и голые пары
+  function candidatesFor(grid) {
+    const cd = new Array(C);
+    for (let i = 0; i < C; i++) {
+      if (grid[i]) { cd[i] = 1 << (grid[i] - 1); continue; }
+      let m = ALL;
+      for (const p of PEERS[i]) if (grid[p]) m &= ~(1 << (grid[p] - 1));
+      cd[i] = m;
+    }
+    return cd;
+  }
+  function nextStep(grid, cd, level) {
+    // одиночка в клетке
+    for (let i = 0; i < C; i++) if (!grid[i] && cd[i] && !(cd[i] & (cd[i] - 1)))
+      return { type: 'naked', cell: i, value: lowBit(cd[i]) + 1 };
+    // единственное место в блоке, строке или столбце
+    for (const U of [...BOXES, ...ROWS, ...COLS]) for (let d = 1; d <= N; d++) {
+      const bit = 1 << (d - 1); let n = 0, w = -1, placed = false;
+      for (const i of U.cells) { if (grid[i] === d) { placed = true; break; } if (!grid[i] && (cd[i] & bit)) { n++; w = i; } }
+      if (!placed && n === 1) return { type: 'hidden', cell: w, value: d, unit: U };
+    }
+    if (level < 2) return null;
+    const spotsOf = (U, bit) => U.cells.filter(i => !grid[i] && (cd[i] & bit));
+    // все места для d в блоке лежат на одной линии → на остальной линии d нет (и наоборот)
+    const lockTry = (A, B, d, spots) => {
+      const bit = 1 << (d - 1), inA = new Set(A.cells);
+      if (!spots.every(i => B.cells.includes(i))) return null;
+      const elim = B.cells.filter(i => !inA.has(i) && !grid[i] && (cd[i] & bit));
+      return elim.length ? { type: 'locked', value: d, from: A, line: B, cells: spots, elim: elim.map(cell => ({ cell, mask: bit })) } : null;
+    };
+    for (let d = 1; d <= N; d++) {
+      const bit = 1 << (d - 1);
+      for (const B of BOXES) {
+        const sp = spotsOf(B, bit); if (sp.length < 2) continue;
+        const st = lockTry(B, ROWS[rowOf(sp[0])], d, sp) || lockTry(B, COLS[colOf(sp[0])], d, sp);
+        if (st) return st;
+      }
+      for (const L of [...ROWS, ...COLS]) {
+        const sp = spotsOf(L, bit); if (sp.length < 2) continue;
+        const st = lockTry(L, BOXES[boxOf(sp[0])], d, sp);
+        if (st) return st;
+      }
+    }
+    // голая пара: две клетки с одинаковыми двумя кандидатами
+    for (const U of UNITS) {
+      const two = U.cells.filter(i => !grid[i] && bitCount(cd[i]) === 2);
+      for (let a = 0; a < two.length; a++) for (let b = a + 1; b < two.length; b++) {
+        const m = cd[two[a]]; if (cd[two[b]] !== m) continue;
+        const elim = U.cells.filter(i => i !== two[a] && i !== two[b] && !grid[i] && (cd[i] & m)).map(cell => ({ cell, mask: cd[cell] & m }));
+        if (elim.length) return { type: 'pair', mask: m, unit: U, cells: [two[a], two[b]], elim };
+      }
+    }
+    return null;
+  }
+  function place(grid, cd, i, d) {
+    grid[i] = d; cd[i] = 1 << (d - 1);
+    for (const p of PEERS[i]) if (!grid[p]) cd[p] &= ~(1 << (d - 1));
+  }
+  function logicSolve(givens, level) {
+    const grid = givens.slice(), cd = candidatesFor(grid);
+    let steps = 0, tricks = 0;
+    for (;;) {
+      const st = nextStep(grid, cd, level);
+      if (!st) break;
+      steps++;
+      if (st.elim) { tricks++; for (const e of st.elim) cd[e.cell] &= ~e.mask; continue; }
+      place(grid, cd, st.cell, st.value);
+    }
+    return { solved: grid.every(x => x), steps, tricks };
+  }
+
+  // --- Генерация ---
+  const LEVELS = {
+    easy:   { logic: 1, keep: 76 },
+    medium: { logic: 1, keep: 0 },
+    hard:   { logic: 2, keep: 0, harderThan: 1, tricks: 3 },
+  };
+  function fullGrid() {
+    for (;;) {
+      const r = solve(new Array(C).fill(0), { limit: 1, random: true, maxNodes: 3000 });
+      if (r.solution) return r.solution;
+    }
+  }
+  function generate(difficulty = 'medium') {
+    const cfg = LEVELS[difficulty] || LEVELS.medium;
+    let hardTries = 0;
+    for (;;) {
+      const sol = fullGrid(), givens = sol.slice();
+      let kept = C;
+      // убираем симметричными парами, чтобы поле выглядело аккуратно
+      const order = shuffle([...Array(C / 2).keys()]);
+      for (const i of order) {
+        if (kept <= cfg.keep) break;
+        const j = C - 1 - i, a = givens[i], b = givens[j];
+        givens[i] = 0; givens[j] = 0;
+        if (logicSolve(givens, cfg.logic).solved) kept -= 2;
+        else { givens[i] = a; givens[j] = b; }
+      }
+      // «сложная» должна несколько раз требовать приём посложнее одиночек
+      if (cfg.harderThan && ++hardTries < 30 &&
+        (logicSolve(givens, cfg.harderThan).solved || logicSolve(givens, cfg.logic).tricks < cfg.tricks)) continue;
+      return { givens, solution: sol, difficulty };
+    }
+  }
+
+  return { N, C, BR, BC, SYM, rowOf, colOf, boxOf, UNITS, ROWS, COLS, BOXES, PEERS, solve, generate, candidatesFor, nextStep, logicSolve };
+})();
+
+// ===== Игра Судоку 12×12 =====
+const SudokuApp = (() => {
+  const E = Sudoku12, N = E.N, C = E.C, SYM = E.SYM;
+  const KEY = 'sudoku12-dalya-v1';
+  const LVL_NAME = { easy: 'Лёгкая', medium: 'Средняя', hard: 'Сложная' };
+
+  let S = null;      // текущая партия
+  let stats = { solved: { easy: 0, medium: 0, hard: 0 }, best: {} };
+  let level = 'medium';
+  let cells = [], padBtns = [];
+  let notesMode = false;
+
+  function load() {
+    try {
+      const d = JSON.parse(localStorage.getItem(KEY) || 'null');
+      if (d) { stats = d.stats || stats; level = d.level || level; if (d.game && d.game.p) S = d.game; }
+    } catch (e) {}
+  }
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify({ stats, level, game: S })); } catch (e) {}
+  }
+
+  function newGame(lvl = level) {
+    level = lvl;
+    $('sdLoading').hidden = false;
+    setTimeout(() => {
+      const p = E.generate(lvl);
+      S = { p, vals: p.givens.slice(), notes: new Array(C).fill(0), elapsed: 0, hints: 0, done: false, sel: -1, history: [] };
+      $('sdLoading').hidden = true;
+      setup(); save();
+    }, 30);
+  }
+
+  function setup() {
+    const board = $('sdBoard');
+    board.innerHTML = '';
+    cells = [];
+    for (let i = 0; i < C; i++) {
+      const d = document.createElement('div');
+      d.className = 'cell';
+      d.addEventListener('pointerdown', e => { e.preventDefault(); select(i); });
+      board.appendChild(d); cells.push(d);
+    }
+    board.appendChild(drawLines());
+    document.querySelectorAll('#screen-sudoku .seg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.lvl === S.p.difficulty)));
+    render();
+  }
+
+  function drawLines() {
+    const ns = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', `0 0 ${N} ${N}`); svg.setAttribute('class', 'lines'); svg.setAttribute('preserveAspectRatio', 'none');
+    const line = (x1, y1, x2, y2, cls) => {
+      const l = document.createElementNS(ns, 'line');
+      l.setAttribute('x1', x1); l.setAttribute('y1', y1); l.setAttribute('x2', x2); l.setAttribute('y2', y2);
+      l.setAttribute('class', cls); return l;
+    };
+    const thick = [];
+    for (let k = 1; k < N; k++) {
+      const v = line(k, 0, k, N, k % E.BC ? 'thin' : 'thick'), h = line(0, k, N, k, k % E.BR ? 'thin' : 'thick');
+      for (const l of [v, h]) l.getAttribute('class') === 'thick' ? thick.push(l) : svg.appendChild(l);
+    }
+    thick.forEach(l => svg.appendChild(l));
+    const f = document.createElementNS(ns, 'rect');
+    f.setAttribute('x', 0); f.setAttribute('y', 0); f.setAttribute('width', N); f.setAttribute('height', N); f.setAttribute('class', 'frame');
+    svg.appendChild(f);
+    return svg;
+  }
+
+  function conflicts() {
+    const bad = new Set();
+    for (let i = 0; i < C; i++) {
+      const v = S.vals[i]; if (!v) continue;
+      for (const p of E.PEERS[i]) if (S.vals[p] === v) { bad.add(i); bad.add(p); }
+    }
+    return bad;
+  }
+
+  function render() {
+    const bad = conflicts(), sel = S.sel, selVal = sel >= 0 ? S.vals[sel] : 0;
+    const sr = sel >= 0 ? E.rowOf(sel) : -1, sc = sel >= 0 ? E.colOf(sel) : -1, sb = sel >= 0 ? E.boxOf(sel) : -1;
+    const count = new Array(N + 1).fill(0);
+    for (let i = 0; i < C; i++) {
+      const d = cells[i], v = S.vals[i];
+      if (v) count[v]++;
+      d.classList.toggle('given', !!S.p.givens[i]);
+      d.classList.toggle('sel', i === sel);
+      d.classList.toggle('area', sel >= 0 && i !== sel && (E.rowOf(i) === sr || E.colOf(i) === sc || E.boxOf(i) === sb));
+      d.classList.toggle('same', sel >= 0 && i !== sel && !!selVal && v === selVal);
+      d.classList.toggle('bad', bad.has(i) && !S.p.givens[i]);
+      if (v) d.textContent = SYM[v];
+      else if (S.notes[i]) {
+        let h = '<div class="notes">';
+        for (let k = 1; k <= N; k++) h += `<span>${S.notes[i] & (1 << (k - 1)) ? SYM[k] : ''}</span>`;
+        d.innerHTML = h + '</div>';
+      } else d.textContent = '';
+    }
+    const locked = sel < 0 || !!S.p.givens[sel] || S.done;
+    // символ, который уже стоит 12 раз, приглушаем
+    padBtns.forEach((b, k) => { b.disabled = locked; b.classList.toggle('full', count[k + 1] >= N); });
+    $('sdPad').classList.toggle('noting', notesMode);
+    $('sdHints').textContent = S.hints;
+    $('sdSolved').textContent = stats.solved.easy + stats.solved.medium + stats.solved.hard;
+    $('sdTimer').textContent = fmt(S.elapsed);
+  }
+
+  function select(i) { S.sel = i; render(); }
+
+  function snapshot() {
+    S.history.push([S.vals.slice(), S.notes.slice()]);
+    if (S.history.length > 300) S.history.shift();
+  }
+
+  function input(n) {
+    const i = S.sel;
+    if (i < 0 || S.done || S.p.givens[i]) return;
+    snapshot();
+    if (notesMode && !S.vals[i]) {
+      S.notes[i] ^= 1 << (n - 1);
+    } else {
+      S.vals[i] = S.vals[i] === n ? 0 : n;
+      if (S.vals[i]) for (const p of E.PEERS[i]) S.notes[p] &= ~(1 << (n - 1));
+    }
+    afterMove();
+  }
+  function erase() {
+    const i = S.sel;
+    if (i < 0 || S.done || S.p.givens[i] || (!S.vals[i] && !S.notes[i])) return;
+    snapshot(); S.vals[i] = 0; S.notes[i] = 0; afterMove();
+  }
+  function undo() {
+    if (S.done || !S.history.length) return;
+    [S.vals, S.notes] = S.history.pop(); afterMove();
+  }
+  function afterMove() {
+    render(); save();
+    if (S.vals.every((v, i) => v === S.p.solution[i])) win();
+  }
+
+  // ===== Подсказки =====
+  async function askHint() {
+    if (S.done) return;
+    const go = await sheet({ title: HintGate.title, body: `<p>${HintGate.text}</p>`, ok: 'Получить подсказку', cancel: 'Сама справлюсь' });
+    if (!go || !(await HintGate.request())) return;
+    S.hints++; save(); render();
+    showHint();
+  }
+
+  function showHint() {
+    const sol = S.p.solution;
+    // сначала ошибки
+    const wrong = S.vals.findIndex((v, i) => v && v !== sol[i]);
+    if (wrong >= 0) {
+      S.sel = wrong; render(); flash(wrong);
+      sheet({ title: 'Тут закралась ошибка', body: '<p>В выделенной клетке стоит неверный символ. Если его убрать, дальше пойдёт легче.</p>', ok: 'Стереть', cancel: 'Оставить' })
+        .then(ok => { if (ok) { snapshot(); S.vals[wrong] = 0; afterMove(); } });
+      return;
+    }
+    const grid = S.vals.slice(), cd = E.candidatesFor(grid);
+    let step = null, trick = null;
+    for (let guard = 0; guard < 600; guard++) {
+      const st = E.nextStep(grid, cd, 2);
+      if (!st) break;
+      if (st.elim) { for (const e of st.elim) cd[e.cell] &= ~e.mask; trick = trick || st; continue; }
+      step = st; break;
+    }
+    let i, v, text;
+    if (step) {
+      i = step.cell; v = step.value;
+      const s = SYM[v];
+      if (trick) {
+        const IN = { row: 'одной строке', col: 'одном столбце', box: 'одном блоке' };
+        const REST = { row: 'этой строки', col: 'этого столбца', box: 'этого блока' };
+        text = trick.type === 'locked'
+          ? `Здесь ${s}. Чтобы это увидеть, нужен приём посложнее: в ${IN[trick.from.kind]} символ ${SYM[trick.value]} может встать только в клетки, которые лежат в ${IN[trick.line.kind]}. Значит, в остальных клетках ${REST[trick.line.kind]} ${SYM[trick.value]} быть не может.`
+          : `Здесь ${s}. Чтобы это увидеть, нужен приём посложнее: в ${IN[trick.unit.kind]} есть две клетки, где возможны только одни и те же два символа. Они займут эти клетки, поэтому в остальных клетках ${REST[trick.unit.kind]} этих символов нет.`;
+      } else if (step.type === 'naked') {
+        text = `В этой клетке может стоять только ${s}: все остальные символы уже есть в её строке, столбце или блоке.`;
+      } else {
+        text = `Посмотри на ${step.unit.kind === 'box' ? 'выделенный блок' : step.unit.kind === 'row' ? 'эту строку' : 'этот столбец'}: символ ${s} может встать только в эту клетку, в остальных он повторил бы символ из той же строки, столбца или блока.`;
+      }
+    } else {
+      const empty = []; for (let k = 0; k < C; k++) if (!S.vals[k]) empty.push(k);
+      i = empty[Math.random() * empty.length | 0]; v = sol[i];
+      text = `Здесь стоит ${SYM[v]}.`;
+    }
+    S.sel = i; render(); flash(i);
+    sheet({ title: 'Подсказка', body: `<p>${text}</p>`, ok: `Поставить ${SYM[v]}`, cancel: 'Дальше сама' })
+      .then(ok => { if (ok && !S.done) { snapshot(); S.vals[i] = v; afterMove(); } });
+  }
+
+  function flash(i) {
+    const d = cells[i]; d.classList.remove('hint'); void d.offsetWidth; d.classList.add('hint');
+    setTimeout(() => d.classList.remove('hint'), 3800);
+  }
+
+  function rules() {
+    // мини-блок 3×4 для картинки
+    const demo = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+    let g = '';
+    demo.forEach((v, k) => {
+      const x = 2 + (k % 4) * 15, y = 9.5 + ((k / 4) | 0) * 15;
+      g += `<rect x="${x}" y="${y}" width="15" height="15" fill="var(--area)" stroke="var(--line)" stroke-width="1"/>
+        <text x="${x + 7.5}" y="${y + 11}" text-anchor="middle" font-size="9.5" font-family="Unbounded, sans-serif" fill="var(--ink)">${SYM[v]}</text>`;
+    });
+    g += '<rect x="2" y="9.5" width="60" height="45" fill="none" stroke="var(--ink)" stroke-width="2.5"/>';
+    sheet({
+      title: 'Судоку 12×12',
+      body: `
+        <div class="rule"><svg viewBox="0 0 64 64">${g}</svg>
+          <p>Поле разбито на 12 блоков по 3×4 клетки. В каждом блоке стоят символы 1–9, A, B, C, каждый по одному разу.</p></div>
+        <p>То же правило для каждой строки и каждого столбца: в них все 12 символов, без повторов. A, B, C можно считать числами 10, 11 и 12.</p>
+        <p class="muted">Нажми на клетку, потом на символ. В режиме «Заметки» можно ставить маленькие пометки. Повторы подсвечиваются красным.</p>`,
+      ok: 'Понятно',
+    });
+  }
+
+  function win() {
+    S.done = true;
+    stats.solved[S.p.difficulty] = (stats.solved[S.p.difficulty] || 0) + 1;
+    const best = stats.best[S.p.difficulty];
+    const record = !S.hints && (!best || S.elapsed < best);
+    if (record) stats.best[S.p.difficulty] = S.elapsed;
+    save(); render(); hearts();
+    sheet({
+      cls: 'win',
+      title: PRAISE[Math.random() * PRAISE.length | 0],
+      body: `<div class="stats">
+        <div><span>Время</span><b>${fmt(S.elapsed)}</b></div>
+        <div><span>Уровень</span><b>${LVL_NAME[S.p.difficulty]}</b></div>
+        <div><span>Подсказок</span><b>${S.hints}</b></div></div>
+        ${record ? '<p class="muted">Новый рекорд без подсказок на этом уровне.</p>' : ''}`,
+      ok: 'Ещё одну', cancel: 'Полюбоваться',
+    }).then(ok => { if (ok) newGame(S.p.difficulty); });
+  }
+
+  // ===== Запуск =====
+  function bind() {
+    const pad = $('sdPad');
+    for (let k = 1; k <= N; k++) {
+      const b = document.createElement('button'); b.textContent = SYM[k];
+      b.addEventListener('click', () => input(k)); pad.appendChild(b); padBtns.push(b);
+    }
+    document.querySelectorAll('#screen-sudoku .seg button').forEach(b => b.addEventListener('click', () => {
+      if (b.dataset.lvl === S.p.difficulty && !S.done) return;
+      const started = !S.done && S.vals.some((v, i) => v && !S.p.givens[i]);
+      if (!started) return newGame(b.dataset.lvl);
+      sheet({ title: 'Начать новую?', body: `<p>Текущая партия не решена. Начать новую, уровень «${LVL_NAME[b.dataset.lvl]}»?</p>`, ok: 'Начать', cancel: 'Остаться' })
+        .then(ok => ok && newGame(b.dataset.lvl));
+    }));
+    $('sdNewBtn').onclick = () => {
+      const started = !S.done && S.vals.some((v, i) => v && !S.p.givens[i]);
+      if (!started) return newGame(S.p.difficulty);
+      sheet({ title: 'Начать новую?', body: '<p>Текущая партия не решена, прогресс пропадёт.</p>', ok: 'Начать', cancel: 'Остаться' })
+        .then(ok => ok && newGame(S.p.difficulty));
+    };
+    $('sdUndoBtn').onclick = undo;
+    $('sdEraseBtn').onclick = erase;
+    $('sdNotesBtn').onclick = () => { notesMode = !notesMode; $('sdNotesBtn').setAttribute('aria-pressed', String(notesMode)); render(); };
+    $('sdHintBtn').onclick = askHint;
+  }
+  function keydown(e) {
+    if (!S) return;
+    const k = e.key.toLowerCase(), abc = { a: 10, b: 11, c: 12, 'ф': 10, 'и': 11, 'с': 12 };
+    if (k >= '1' && k <= '9') input(+k);
+    else if (abc[k] && !e.metaKey && !e.ctrlKey) input(abc[k]);
+    else if (k === 'backspace' || k === 'delete' || k === '0') erase();
+    else if (k === 'n' || k === 'т') $('sdNotesBtn').click();
+    else if ((e.metaKey || e.ctrlKey) && k === 'z') undo();
+    else if (e.key.startsWith('Arrow')) {
+      const i = S.sel < 0 ? 66 : S.sel, r = E.rowOf(i), c = E.colOf(i);
+      const [dr, dc] = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] }[e.key];
+      select(((r + dr + N) % N) * N + (c + dc + N) % N); e.preventDefault();
+    }
+  }
+  function tick() {
+    if (S && !S.done && $('sdLoading').hidden) { S.elapsed++; $('sdTimer').textContent = fmt(S.elapsed); if (S.elapsed % 10 === 0) save(); }
+  }
+  let shown = false;
+  function show() {
+    if (shown) return;
+    shown = true; bind();
+    if (S) { S.sel = -1; setup(); } else newGame(level);
+    try { if (!localStorage.getItem(KEY + '-seen')) { localStorage.setItem(KEY + '-seen', '1'); rules(); } } catch (e) {}
+  }
+  load();
+  return { show, tick, keydown, rules, solved: () => stats.solved.easy + stats.solved.medium + stats.solved.hard };
+})();
+
+// ===== Переключение между играми =====
+const GAMES = {
+  suguru: { app: SuguruApp, title: 'Сугуру', size: '9×9', about: 'Области с числами, одинаковые не касаются' },
+  sudoku: { app: SudokuApp, title: 'Судоку', size: '12×12', about: 'Символы 1–9, A, B, C в строках, столбцах и блоках' },
+};
+const SHELL_KEY = 'logicgames-dalya-v1';
+let current = 'suguru';
+
+function switchTo(id) {
+  if (!GAMES[id]) id = 'suguru';
+  current = id;
+  for (const k in GAMES) $('screen-' + k).hidden = k !== id;
+  const g = GAMES[id];
+  $('brandTitle').innerHTML = `${g.title}<span>.</span>`;
+  $('brandSize').textContent = g.size;
+  document.title = `${g.title} для Дали`;
+  try { localStorage.setItem(SHELL_KEY, JSON.stringify({ current })); } catch (e) {}
+  g.app.show();
 }
-init();
+
+function pickGame() {
+  $('gameBtn').classList.remove('fresh');
+  try { localStorage.setItem(SHELL_KEY + '-picker', '1'); } catch (e) {}
+  const root = $('sheetRoot');
+  const items = Object.entries(GAMES).map(([k, g]) => `
+    <button class="game-card" data-game="${k}" aria-pressed="${k === current}">
+      <span class="game-ico ${k}" aria-hidden="true"></span>
+      <span class="game-txt"><b>${g.title} <i>${g.size}</i></b><small>${g.about}</small></span>
+      <span class="game-solved">${g.app.solved()}<small>решено</small></span>
+    </button>`).join('');
+  root.innerHTML = `<div class="sheet-back"><div class="sheet" role="dialog" aria-modal="true">
+    <h2>Во что сыграем?</h2><div class="games">${items}</div>
+    <p class="muted">Прогресс в каждой игре сохраняется отдельно.</p></div></div>`;
+  const close = () => { root.innerHTML = ''; };
+  root.querySelectorAll('.game-card').forEach(b => b.onclick = () => { close(); if (b.dataset.game !== current) switchTo(b.dataset.game); });
+  root.querySelector('.sheet-back').addEventListener('pointerdown', e => { if (e.target.classList.contains('sheet-back')) close(); });
+}
+
+function initShell() {
+  $('gameBtn').onclick = pickGame;
+  $('rulesBtn').onclick = () => GAMES[current].app.rules();
+  document.addEventListener('keydown', e => {
+    if ($('sheetRoot').innerHTML) return;
+    GAMES[current].app.keydown(e);
+  });
+  setInterval(() => { if (!document.hidden) GAMES[current].app.tick(); }, 1000);
+  try { if (!localStorage.getItem(SHELL_KEY + '-picker')) $('gameBtn').classList.add('fresh'); } catch (e) {}
+  let saved = 'suguru';
+  try { saved = (JSON.parse(localStorage.getItem(SHELL_KEY) || 'null') || {}).current || saved; } catch (e) {}
+  switchTo(saved);
+}
+initShell();
 
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 </script>

@@ -1,316 +1,262 @@
-// ===== Условие получения подсказки =====
-// ЗАГЛУШКА. Сюда встанет условие, которое выберет Руслан.
-// request() должен вернуть true, если подсказку можно выдать.
-const HintGate = {
-  title: 'Подсказка',
-  text: 'Скоро здесь появится особое условие, чтобы получить подсказку. Пока что подсказки бесплатные.',
-  async request() { return true; },
-};
+// ===== Игра Сугуру 9×9 =====
+const SuguruApp = (() => {
+  const KEY = 'suguru-dalya-v1';
+  const LVL_NAME = { easy: 'Лёгкая', medium: 'Средняя', hard: 'Сложная' };
 
-// ===== Игра =====
-const $ = id => document.getElementById(id);
-const KEY = 'suguru-dalya-v1';
-const LVL_NAME = { easy: 'Лёгкая', medium: 'Средняя', hard: 'Сложная' };
-const PRAISE = ['Даля, ты умница!', 'Блестяще, Даля!', 'Ещё одна покорена!', 'Вот это голова!', 'Красиво решено!'];
+  let S = null;      // текущая партия
+  let geo = null;    // геометрия областей
+  let stats = { solved: { easy: 0, medium: 0, hard: 0 }, best: {} };
+  let level = 'medium';
+  let cells = [];
 
-let S = null;      // текущая партия
-let geo = null;    // геометрия областей
-let stats = { solved: { easy: 0, medium: 0, hard: 0 }, best: {} };
-let level = 'medium';
-let cells = [];
-
-function load() {
-  try {
-    const d = JSON.parse(localStorage.getItem(KEY) || 'null');
-    if (d) { stats = d.stats || stats; level = d.level || level; if (d.game && d.game.p) S = d.game; }
-  } catch (e) {}
-}
-function save() {
-  try { localStorage.setItem(KEY, JSON.stringify({ stats, level, game: S })); } catch (e) {}
-}
-
-function newGame(lvl = level) {
-  level = lvl;
-  $('loading').hidden = false;
-  setTimeout(() => {
-    const p = Suguru.generate(lvl);
-    S = { p, vals: p.givens.slice(), notes: new Array(81).fill(0), elapsed: 0, hints: 0, done: false, sel: -1, history: [] };
-    $('loading').hidden = true;
-    setup(); save();
-  }, 30);
-}
-
-function setup() {
-  geo = Suguru.buildGeo(S.p.reg);
-  const board = $('board');
-  board.innerHTML = '';
-  cells = [];
-  for (let i = 0; i < 81; i++) {
-    const d = document.createElement('div');
-    d.className = 'cell';
-    d.addEventListener('pointerdown', e => { e.preventDefault(); select(i); });
-    board.appendChild(d); cells.push(d);
+  function load() {
+    try {
+      const d = JSON.parse(localStorage.getItem(KEY) || 'null');
+      if (d) { stats = d.stats || stats; level = d.level || level; if (d.game && d.game.p) S = d.game; }
+    } catch (e) {}
   }
-  board.appendChild(drawLines());
-  document.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.lvl === S.p.difficulty)));
-  render();
-}
-
-function drawLines() {
-  const ns = 'http://www.w3.org/2000/svg', reg = S.p.reg;
-  const svg = document.createElementNS(ns, 'svg');
-  svg.setAttribute('viewBox', '0 0 9 9'); svg.setAttribute('class', 'lines'); svg.setAttribute('preserveAspectRatio', 'none');
-  const line = (x1, y1, x2, y2, cls) => {
-    const l = document.createElementNS(ns, 'line');
-    l.setAttribute('x1', x1); l.setAttribute('y1', y1); l.setAttribute('x2', x2); l.setAttribute('y2', y2);
-    l.setAttribute('class', cls); return l;
-  };
-  const thick = [];
-  for (let r = 0; r < 9; r++) for (let c = 0; c < 9; c++) {
-    const i = r * 9 + c;
-    if (c < 8) { const t = reg[i] !== reg[i + 1];
-      const l = line(c + 1, r, c + 1, r + 1, t ? 'thick' : 'thin'); (t ? thick.push(l) : svg.appendChild(l)); }
-    if (r < 8) { const t = reg[i] !== reg[i + 9];
-      const l = line(c, r + 1, c + 1, r + 1, t ? 'thick' : 'thin'); (t ? thick.push(l) : svg.appendChild(l)); }
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify({ stats, level, game: S })); } catch (e) {}
   }
-  thick.forEach(l => svg.appendChild(l));
-  const f = document.createElementNS(ns, 'rect');
-  f.setAttribute('x', 0); f.setAttribute('y', 0); f.setAttribute('width', 9); f.setAttribute('height', 9); f.setAttribute('class', 'frame');
-  svg.appendChild(f);
-  return svg;
-}
 
-function conflicts() {
-  const bad = new Set();
-  for (let i = 0; i < 81; i++) {
-    const v = S.vals[i]; if (!v) continue;
-    for (const p of geo.peers[i]) if (S.vals[p] === v) { bad.add(i); bad.add(p); }
+  function newGame(lvl = level) {
+    level = lvl;
+    $('loading').hidden = false;
+    setTimeout(() => {
+      const p = Suguru.generate(lvl);
+      S = { p, vals: p.givens.slice(), notes: new Array(81).fill(0), elapsed: 0, hints: 0, done: false, sel: -1, history: [] };
+      $('loading').hidden = true;
+      setup(); save();
+    }, 30);
   }
-  return bad;
-}
 
-function render() {
-  const bad = conflicts(), sel = S.sel, selVal = sel >= 0 ? S.vals[sel] : 0;
-  for (let i = 0; i < 81; i++) {
-    const d = cells[i], v = S.vals[i];
-    d.classList.toggle('given', !!S.p.givens[i]);
-    d.classList.toggle('sel', i === sel);
-    d.classList.toggle('area', sel >= 0 && i !== sel && S.p.reg[i] === S.p.reg[sel]);
-    d.classList.toggle('same', sel >= 0 && i !== sel && !!selVal && v === selVal);
-    d.classList.toggle('bad', bad.has(i) && !S.p.givens[i]);
-    if (v) d.textContent = v;
-    else if (S.notes[i]) {
-      let h = '<div class="notes">';
-      for (let k = 1; k <= 5; k++) h += `<span>${S.notes[i] & (1 << (k - 1)) ? k : ''}</span>`;
-      d.innerHTML = h + '</div>';
-    } else d.textContent = '';
+  function setup() {
+    geo = Suguru.buildGeo(S.p.reg);
+    const board = $('board');
+    board.innerHTML = '';
+    cells = [];
+    for (let i = 0; i < 81; i++) {
+      const d = document.createElement('div');
+      d.className = 'cell';
+      d.addEventListener('pointerdown', e => { e.preventDefault(); select(i); });
+      board.appendChild(d); cells.push(d);
+    }
+    board.appendChild(drawLines());
+    document.querySelectorAll('#screen-suguru .seg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.lvl === S.p.difficulty)));
+    render();
   }
-  // цифры, которые подходят по размеру области
-  const max = sel >= 0 ? geo.size[sel] : 5;
-  const locked = sel < 0 || !!S.p.givens[sel] || S.done;
-  document.querySelectorAll('#pad button').forEach((b, k) => { b.disabled = locked || k + 1 > max; });
-  $('pad').classList.toggle('noting', notesMode);
-  $('hintsUsed').textContent = S.hints;
-  $('solved').textContent = stats.solved.easy + stats.solved.medium + stats.solved.hard;
-  $('timer').textContent = fmt(S.elapsed);
-}
 
-const fmt = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-
-function select(i) { S.sel = i; render(); }
-
-function snapshot() {
-  S.history.push([S.vals.slice(), S.notes.slice()]);
-  if (S.history.length > 300) S.history.shift();
-}
-
-let notesMode = false;
-function input(n) {
-  const i = S.sel;
-  if (i < 0 || S.done || S.p.givens[i] || n > geo.size[i]) return;
-  snapshot();
-  if (notesMode && !S.vals[i]) {
-    S.notes[i] ^= 1 << (n - 1);
-  } else {
-    S.vals[i] = S.vals[i] === n ? 0 : n;
-    if (S.vals[i]) for (const p of geo.peers[i]) S.notes[p] &= ~(1 << (n - 1));
+  function drawLines() {
+    const ns = 'http://www.w3.org/2000/svg', reg = S.p.reg;
+    const svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', '0 0 9 9'); svg.setAttribute('class', 'lines'); svg.setAttribute('preserveAspectRatio', 'none');
+    const line = (x1, y1, x2, y2, cls) => {
+      const l = document.createElementNS(ns, 'line');
+      l.setAttribute('x1', x1); l.setAttribute('y1', y1); l.setAttribute('x2', x2); l.setAttribute('y2', y2);
+      l.setAttribute('class', cls); return l;
+    };
+    const thick = [];
+    for (let r = 0; r < 9; r++) for (let c = 0; c < 9; c++) {
+      const i = r * 9 + c;
+      if (c < 8) { const t = reg[i] !== reg[i + 1];
+        const l = line(c + 1, r, c + 1, r + 1, t ? 'thick' : 'thin'); (t ? thick.push(l) : svg.appendChild(l)); }
+      if (r < 8) { const t = reg[i] !== reg[i + 9];
+        const l = line(c, r + 1, c + 1, r + 1, t ? 'thick' : 'thin'); (t ? thick.push(l) : svg.appendChild(l)); }
+    }
+    thick.forEach(l => svg.appendChild(l));
+    const f = document.createElementNS(ns, 'rect');
+    f.setAttribute('x', 0); f.setAttribute('y', 0); f.setAttribute('width', 9); f.setAttribute('height', 9); f.setAttribute('class', 'frame');
+    svg.appendChild(f);
+    return svg;
   }
-  afterMove();
-}
-function erase() {
-  const i = S.sel;
-  if (i < 0 || S.done || S.p.givens[i] || (!S.vals[i] && !S.notes[i])) return;
-  snapshot(); S.vals[i] = 0; S.notes[i] = 0; afterMove();
-}
-function undo() {
-  if (S.done || !S.history.length) return;
-  [S.vals, S.notes] = S.history.pop(); afterMove();
-}
-function afterMove() {
-  render(); save();
-  if (S.vals.every((v, i) => v === S.p.solution[i])) win();
-}
 
-// ===== Подсказки =====
-async function askHint() {
-  if (S.done) return;
-  const go = await sheet({ title: HintGate.title, body: `<p>${HintGate.text}</p>`, ok: 'Получить подсказку', cancel: 'Сама справлюсь' });
-  if (!go || !(await HintGate.request())) return;
-  S.hints++; save(); render();
-  showHint();
-}
+  function conflicts() {
+    const bad = new Set();
+    for (let i = 0; i < 81; i++) {
+      const v = S.vals[i]; if (!v) continue;
+      for (const p of geo.peers[i]) if (S.vals[p] === v) { bad.add(i); bad.add(p); }
+    }
+    return bad;
+  }
 
-function showHint() {
-  const sol = S.p.solution;
-  // сначала ошибки
-  const wrong = S.vals.findIndex((v, i) => v && v !== sol[i]);
-  if (wrong >= 0) {
-    flash(wrong);
-    sheet({ title: 'Тут закралась ошибка', body: '<p>В выделенной клетке стоит неверное число. Если его убрать, дальше пойдёт легче.</p>', ok: 'Стереть', cancel: 'Оставить' })
-      .then(ok => { if (ok) { snapshot(); S.vals[wrong] = 0; afterMove(); } });
-    return;
+  function render() {
+    const bad = conflicts(), sel = S.sel, selVal = sel >= 0 ? S.vals[sel] : 0;
+    for (let i = 0; i < 81; i++) {
+      const d = cells[i], v = S.vals[i];
+      d.classList.toggle('given', !!S.p.givens[i]);
+      d.classList.toggle('sel', i === sel);
+      d.classList.toggle('area', sel >= 0 && i !== sel && S.p.reg[i] === S.p.reg[sel]);
+      d.classList.toggle('same', sel >= 0 && i !== sel && !!selVal && v === selVal);
+      d.classList.toggle('bad', bad.has(i) && !S.p.givens[i]);
+      if (v) d.textContent = v;
+      else if (S.notes[i]) {
+        let h = '<div class="notes">';
+        for (let k = 1; k <= 5; k++) h += `<span>${S.notes[i] & (1 << (k - 1)) ? k : ''}</span>`;
+        d.innerHTML = h + '</div>';
+      } else d.textContent = '';
+    }
+    // цифры, которые подходят по размеру области
+    const max = sel >= 0 ? geo.size[sel] : 5;
+    const locked = sel < 0 || !!S.p.givens[sel] || S.done;
+    document.querySelectorAll('#pad button').forEach((b, k) => { b.disabled = locked || k + 1 > max; });
+    $('pad').classList.toggle('noting', notesMode);
+    $('hintsUsed').textContent = S.hints;
+    $('solved').textContent = stats.solved.easy + stats.solved.medium + stats.solved.hard;
+    $('timer').textContent = fmt(S.elapsed);
   }
-  const grid = S.vals.slice(), cd = Suguru.candidatesFor(geo, grid);
-  let step = null, usedElim = false;
-  for (let guard = 0; guard < 400; guard++) {
-    const st = Suguru.nextStep(geo, grid, cd, 2);
-    if (!st) break;
-    if (st.type === 'elim') { cd[st.cell] &= ~(1 << (st.value - 1)); usedElim = true; continue; }
-    step = st; break;
+
+  function select(i) { S.sel = i; render(); }
+
+  function snapshot() {
+    S.history.push([S.vals.slice(), S.notes.slice()]);
+    if (S.history.length > 300) S.history.shift();
   }
-  let i, v, text;
-  if (step) {
-    i = step.cell; v = step.value;
-    const n = geo.size[i];
-    if (step.type === 'naked' && !usedElim) {
-      const others = []; for (let k = 1; k <= n; k++) if (k !== v) others.push(k);
-      text = n === 1
-        ? 'Эта клетка сама по себе область, значит тут 1.'
-        : `Область из ${n} клеток, значит здесь может быть только 1–${n}. ${others.length > 1 ? 'Числа ' + others.join(', ') + ' уже' : 'Число ' + others[0] + ' уже'} стоят в этой области или касаются клетки. Остаётся ${v}.`;
-    } else if (step.type === 'hidden' && !usedElim) {
-      text = `Посмотри на выделенную область: число ${v} в ней больше никуда не встаёт. В остальных свободных клетках оно касалось бы такой же ${v}.`;
+
+  let notesMode = false;
+  function input(n) {
+    const i = S.sel;
+    if (i < 0 || S.done || S.p.givens[i] || n > geo.size[i]) return;
+    snapshot();
+    if (notesMode && !S.vals[i]) {
+      S.notes[i] ^= 1 << (n - 1);
     } else {
-      text = `Здесь ${v}. Чтобы это увидеть, посмотри на соседние области: если все места для какого-то числа в области касаются одной клетки, в этой клетке такого числа быть не может.`;
+      S.vals[i] = S.vals[i] === n ? 0 : n;
+      if (S.vals[i]) for (const p of geo.peers[i]) S.notes[p] &= ~(1 << (n - 1));
     }
-  } else {
-    const empty = []; for (let k = 0; k < 81; k++) if (!S.vals[k]) empty.push(k);
-    i = empty[Math.random() * empty.length | 0]; v = sol[i];
-    text = `Здесь стоит ${v}.`;
+    afterMove();
   }
-  S.sel = i; render(); flash(i);
-  sheet({ title: 'Подсказка', body: `<p>${text}</p>`, ok: `Поставить ${v}`, cancel: 'Дальше сама' })
-    .then(ok => { if (ok && !S.done) { snapshot(); S.vals[i] = v; afterMove(); } });
-}
+  function erase() {
+    const i = S.sel;
+    if (i < 0 || S.done || S.p.givens[i] || (!S.vals[i] && !S.notes[i])) return;
+    snapshot(); S.vals[i] = 0; S.notes[i] = 0; afterMove();
+  }
+  function undo() {
+    if (S.done || !S.history.length) return;
+    [S.vals, S.notes] = S.history.pop(); afterMove();
+  }
+  function afterMove() {
+    render(); save();
+    if (S.vals.every((v, i) => v === S.p.solution[i])) win();
+  }
 
-function flash(i) {
-  const d = cells[i]; d.classList.remove('hint'); void d.offsetWidth; d.classList.add('hint');
-  setTimeout(() => d.classList.remove('hint'), 3800);
-}
+  // ===== Подсказки =====
+  async function askHint() {
+    if (S.done) return;
+    const go = await sheet({ title: HintGate.title, body: `<p>${HintGate.text}</p>`, ok: 'Получить подсказку', cancel: 'Сама справлюсь' });
+    if (!go || !(await HintGate.request())) return;
+    S.hints++; save(); render();
+    showHint();
+  }
 
-// ===== Шторка =====
-function sheet({ title, body, ok, cancel, cls = '' }) {
-  return new Promise(resolve => {
-    const root = $('sheetRoot');
-    root.innerHTML = `<div class="sheet-back"><div class="sheet ${cls}" role="dialog" aria-modal="true">
-      <h2>${title}</h2>${body}
-      <div class="actions">${cancel ? `<button id="sheetCancel">${cancel}</button>` : ''}<button class="primary" id="sheetOk">${ok}</button></div>
-    </div></div>`;
-    const close = v => { root.innerHTML = ''; resolve(v); };
-    $('sheetOk').onclick = () => close(true);
-    if (cancel) $('sheetCancel').onclick = () => close(false);
-    root.querySelector('.sheet-back').addEventListener('pointerdown', e => { if (e.target.classList.contains('sheet-back')) close(false); });
-    $('sheetOk').focus({ preventScroll: true });
-  });
-}
-
-function rules() {
-  const ex = (cellsSvg) => `<svg viewBox="0 0 64 64">${cellsSvg}</svg>`;
-  const box = (x, y, t, c) => `<rect x="${x}" y="${y}" width="20" height="20" fill="var(--area)" stroke="var(--line)" stroke-width="1"/>
-    <text x="${x + 10}" y="${y + 15}" text-anchor="middle" font-size="13" font-family="Unbounded, sans-serif" fill="${c || 'var(--ink)'}">${t}</text>`;
-  sheet({
-    title: 'Как играть',
-    body: `
-      <div class="rule">${ex(box(12, 12, 1) + box(32, 12, 3) + box(12, 32, 4) + box(32, 32, 2) + '<rect x="12" y="12" width="40" height="40" fill="none" stroke="var(--ink)" stroke-width="2.5"/>')}
-        <p>Поле разбито на области. В области из N клеток стоят числа от 1 до N, каждое по одному разу.</p></div>
-      <div class="rule">${ex(box(12, 12, 2, 'var(--error)') + box(32, 32, 2, 'var(--error)') + box(32, 12, 1) + box(12, 32, 3))}
-        <p>Одинаковые числа не могут касаться друг друга, даже уголком.</p></div>
-      <p class="muted">Нажми на клетку, потом на цифру. В режиме «Заметки» можно ставить маленькие пометки. Клетки, которые нарушают правила, подсвечиваются красным.</p>`,
-    ok: 'Понятно',
-  });
-}
-
-function win() {
-  S.done = true;
-  stats.solved[S.p.difficulty] = (stats.solved[S.p.difficulty] || 0) + 1;
-  const best = stats.best[S.p.difficulty];
-  const record = !S.hints && (!best || S.elapsed < best);
-  if (record) stats.best[S.p.difficulty] = S.elapsed;
-  save(); render(); hearts();
-  sheet({
-    cls: 'win',
-    title: PRAISE[Math.random() * PRAISE.length | 0],
-    body: `<div class="stats">
-      <div><span>Время</span><b>${fmt(S.elapsed)}</b></div>
-      <div><span>Уровень</span><b>${LVL_NAME[S.p.difficulty]}</b></div>
-      <div><span>Подсказок</span><b>${S.hints}</b></div></div>
-      ${record ? '<p class="muted">Новый рекорд без подсказок на этом уровне.</p>' : ''}`,
-    ok: 'Ещё одну', cancel: 'Полюбоваться',
-  }).then(ok => { if (ok) newGame(S.p.difficulty); });
-}
-
-function hearts() {
-  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  const cv = document.createElement('canvas'); cv.className = 'hearts'; document.body.appendChild(cv);
-  const dpr = devicePixelRatio || 1, W = innerWidth, H = innerHeight;
-  cv.width = W * dpr; cv.height = H * dpr;
-  const ctx = cv.getContext('2d'); ctx.scale(dpr, dpr);
-  const color = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#d6457a';
-  const ps = Array.from({ length: 36 }, () => ({ x: Math.random() * W, y: H + Math.random() * H * .4, s: 8 + Math.random() * 14, v: 2 + Math.random() * 3, w: Math.random() * 6, a: 1 }));
-  let t = 0;
-  (function frame() {
-    ctx.clearRect(0, 0, W, H); t++;
-    for (const p of ps) {
-      p.y -= p.v; p.x += Math.sin((t + p.w * 20) / 18) * .8; if (p.y < H * .25) p.a -= .02;
-      ctx.globalAlpha = Math.max(0, p.a); ctx.fillStyle = color;
-      ctx.beginPath(); const s = p.s;
-      ctx.moveTo(p.x, p.y + s * .3);
-      ctx.bezierCurveTo(p.x, p.y, p.x - s / 2, p.y, p.x - s / 2, p.y + s * .3);
-      ctx.bezierCurveTo(p.x - s / 2, p.y + s * .6, p.x, p.y + s * .75, p.x, p.y + s);
-      ctx.bezierCurveTo(p.x, p.y + s * .75, p.x + s / 2, p.y + s * .6, p.x + s / 2, p.y + s * .3);
-      ctx.bezierCurveTo(p.x + s / 2, p.y, p.x, p.y, p.x, p.y + s * .3);
-      ctx.fill();
+  function showHint() {
+    const sol = S.p.solution;
+    // сначала ошибки
+    const wrong = S.vals.findIndex((v, i) => v && v !== sol[i]);
+    if (wrong >= 0) {
+      flash(wrong);
+      sheet({ title: 'Тут закралась ошибка', body: '<p>В выделенной клетке стоит неверное число. Если его убрать, дальше пойдёт легче.</p>', ok: 'Стереть', cancel: 'Оставить' })
+        .then(ok => { if (ok) { snapshot(); S.vals[wrong] = 0; afterMove(); } });
+      return;
     }
-    if (t < 220) requestAnimationFrame(frame); else cv.remove();
-  })();
-}
-
-// ===== Запуск =====
-function init() {
-  const pad = $('pad');
-  for (let k = 1; k <= 5; k++) {
-    const b = document.createElement('button'); b.textContent = k; b.id = 'pad' + k;
-    b.addEventListener('click', () => input(k)); pad.appendChild(b);
+    const grid = S.vals.slice(), cd = Suguru.candidatesFor(geo, grid);
+    let step = null, usedElim = false;
+    for (let guard = 0; guard < 400; guard++) {
+      const st = Suguru.nextStep(geo, grid, cd, 2);
+      if (!st) break;
+      if (st.type === 'elim') { cd[st.cell] &= ~(1 << (st.value - 1)); usedElim = true; continue; }
+      step = st; break;
+    }
+    let i, v, text;
+    if (step) {
+      i = step.cell; v = step.value;
+      const n = geo.size[i];
+      if (step.type === 'naked' && !usedElim) {
+        const others = []; for (let k = 1; k <= n; k++) if (k !== v) others.push(k);
+        text = n === 1
+          ? 'Эта клетка сама по себе область, значит тут 1.'
+          : `Область из ${n} клеток, значит здесь может быть только 1–${n}. ${others.length > 1 ? 'Числа ' + others.join(', ') + ' уже' : 'Число ' + others[0] + ' уже'} стоят в этой области или касаются клетки. Остаётся ${v}.`;
+      } else if (step.type === 'hidden' && !usedElim) {
+        text = `Посмотри на выделенную область: число ${v} в ней больше никуда не встаёт. В остальных свободных клетках оно касалось бы такой же ${v}.`;
+      } else {
+        text = `Здесь ${v}. Чтобы это увидеть, посмотри на соседние области: если все места для какого-то числа в области касаются одной клетки, в этой клетке такого числа быть не может.`;
+      }
+    } else {
+      const empty = []; for (let k = 0; k < 81; k++) if (!S.vals[k]) empty.push(k);
+      i = empty[Math.random() * empty.length | 0]; v = sol[i];
+      text = `Здесь стоит ${v}.`;
+    }
+    S.sel = i; render(); flash(i);
+    sheet({ title: 'Подсказка', body: `<p>${text}</p>`, ok: `Поставить ${v}`, cancel: 'Дальше сама' })
+      .then(ok => { if (ok && !S.done) { snapshot(); S.vals[i] = v; afterMove(); } });
   }
-  document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => {
-    if (b.dataset.lvl === S.p.difficulty && !S.done) return;
-    const started = !S.done && S.vals.some((v, i) => v && !S.p.givens[i]);
-    if (!started) return newGame(b.dataset.lvl);
-    sheet({ title: 'Начать новую?', body: `<p>Текущая партия не решена. Начать новую, уровень «${LVL_NAME[b.dataset.lvl]}»?</p>`, ok: 'Начать', cancel: 'Остаться' })
-      .then(ok => ok && newGame(b.dataset.lvl));
-  }));
-  $('newBtn').onclick = () => {
-    const started = !S.done && S.vals.some((v, i) => v && !S.p.givens[i]);
-    if (!started) return newGame(S.p.difficulty);
-    sheet({ title: 'Начать новую?', body: '<p>Текущая партия не решена, прогресс пропадёт.</p>', ok: 'Начать', cancel: 'Остаться' })
-      .then(ok => ok && newGame(S.p.difficulty));
-  };
-  $('undoBtn').onclick = undo;
-  $('eraseBtn').onclick = erase;
-  $('notesBtn').onclick = () => { notesMode = !notesMode; $('notesBtn').setAttribute('aria-pressed', String(notesMode)); render(); };
-  $('hintBtn').onclick = askHint;
-  $('rulesBtn').onclick = rules;
-  document.addEventListener('keydown', e => {
-    if ($('sheetRoot').innerHTML) return;
+
+  function flash(i) {
+    const d = cells[i]; d.classList.remove('hint'); void d.offsetWidth; d.classList.add('hint');
+    setTimeout(() => d.classList.remove('hint'), 3800);
+  }
+
+  function rules() {
+    const ex = (cellsSvg) => `<svg viewBox="0 0 64 64">${cellsSvg}</svg>`;
+    const box = (x, y, t, c) => `<rect x="${x}" y="${y}" width="20" height="20" fill="var(--area)" stroke="var(--line)" stroke-width="1"/>
+      <text x="${x + 10}" y="${y + 15}" text-anchor="middle" font-size="13" font-family="Unbounded, sans-serif" fill="${c || 'var(--ink)'}">${t}</text>`;
+    sheet({
+      title: 'Как играть',
+      body: `
+        <div class="rule">${ex(box(12, 12, 1) + box(32, 12, 3) + box(12, 32, 4) + box(32, 32, 2) + '<rect x="12" y="12" width="40" height="40" fill="none" stroke="var(--ink)" stroke-width="2.5"/>')}
+          <p>Поле разбито на области. В области из N клеток стоят числа от 1 до N, каждое по одному разу.</p></div>
+        <div class="rule">${ex(box(12, 12, 2, 'var(--error)') + box(32, 32, 2, 'var(--error)') + box(32, 12, 1) + box(12, 32, 3))}
+          <p>Одинаковые числа не могут касаться друг друга, даже уголком.</p></div>
+        <p class="muted">Нажми на клетку, потом на цифру. В режиме «Заметки» можно ставить маленькие пометки. Клетки, которые нарушают правила, подсвечиваются красным.</p>`,
+      ok: 'Понятно',
+    });
+  }
+
+  function win() {
+    S.done = true;
+    stats.solved[S.p.difficulty] = (stats.solved[S.p.difficulty] || 0) + 1;
+    const best = stats.best[S.p.difficulty];
+    const record = !S.hints && (!best || S.elapsed < best);
+    if (record) stats.best[S.p.difficulty] = S.elapsed;
+    save(); render(); hearts();
+    sheet({
+      cls: 'win',
+      title: PRAISE[Math.random() * PRAISE.length | 0],
+      body: `<div class="stats">
+        <div><span>Время</span><b>${fmt(S.elapsed)}</b></div>
+        <div><span>Уровень</span><b>${LVL_NAME[S.p.difficulty]}</b></div>
+        <div><span>Подсказок</span><b>${S.hints}</b></div></div>
+        ${record ? '<p class="muted">Новый рекорд без подсказок на этом уровне.</p>' : ''}`,
+      ok: 'Ещё одну', cancel: 'Полюбоваться',
+    }).then(ok => { if (ok) newGame(S.p.difficulty); });
+  }
+
+  // ===== Запуск =====
+  function bind() {
+    const pad = $('pad');
+    for (let k = 1; k <= 5; k++) {
+      const b = document.createElement('button'); b.textContent = k; b.id = 'pad' + k;
+      b.addEventListener('click', () => input(k)); pad.appendChild(b);
+    }
+    document.querySelectorAll('#screen-suguru .seg button').forEach(b => b.addEventListener('click', () => {
+      if (b.dataset.lvl === S.p.difficulty && !S.done) return;
+      const started = !S.done && S.vals.some((v, i) => v && !S.p.givens[i]);
+      if (!started) return newGame(b.dataset.lvl);
+      sheet({ title: 'Начать новую?', body: `<p>Текущая партия не решена. Начать новую, уровень «${LVL_NAME[b.dataset.lvl]}»?</p>`, ok: 'Начать', cancel: 'Остаться' })
+        .then(ok => ok && newGame(b.dataset.lvl));
+    }));
+    $('newBtn').onclick = () => {
+      const started = !S.done && S.vals.some((v, i) => v && !S.p.givens[i]);
+      if (!started) return newGame(S.p.difficulty);
+      sheet({ title: 'Начать новую?', body: '<p>Текущая партия не решена, прогресс пропадёт.</p>', ok: 'Начать', cancel: 'Остаться' })
+        .then(ok => ok && newGame(S.p.difficulty));
+    };
+    $('undoBtn').onclick = undo;
+    $('eraseBtn').onclick = erase;
+    $('notesBtn').onclick = () => { notesMode = !notesMode; $('notesBtn').setAttribute('aria-pressed', String(notesMode)); render(); };
+    $('hintBtn').onclick = askHint;
+  }
+  function keydown(e) {
+    if (!S) return;
     if (e.key >= '1' && e.key <= '5') input(+e.key);
     else if (e.key === 'Backspace' || e.key === 'Delete' || e.key === '0') erase();
     else if (e.key === 'n' || e.key === 'т') $('notesBtn').click();
@@ -320,12 +266,17 @@ function init() {
       const [dr, dc] = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] }[e.key];
       select(((r + dr + 9) % 9) * 9 + (c + dc + 9) % 9); e.preventDefault();
     }
-  });
-  setInterval(() => {
-    if (S && !S.done && !document.hidden && $('loading').hidden) { S.elapsed++; $('timer').textContent = fmt(S.elapsed); if (S.elapsed % 10 === 0) save(); }
-  }, 1000);
+  }
+  function tick() {
+    if (S && !S.done && $('loading').hidden) { S.elapsed++; $('timer').textContent = fmt(S.elapsed); if (S.elapsed % 10 === 0) save(); }
+  }
+  let shown = false;
+  function show() {
+    if (shown) return;
+    shown = true; bind();
+    if (S) { S.sel = -1; setup(); } else newGame(level);
+    try { if (!localStorage.getItem(KEY + '-seen')) { localStorage.setItem(KEY + '-seen', '1'); rules(); } } catch (e) {}
+  }
   load();
-  if (S) { S.sel = -1; setup(); } else newGame(level);
-  try { if (!localStorage.getItem(KEY + '-seen')) { localStorage.setItem(KEY + '-seen', '1'); rules(); } } catch (e) {}
-}
-init();
+  return { show, tick, keydown, rules, solved: () => stats.solved.easy + stats.solved.medium + stats.solved.hard };
+})();
