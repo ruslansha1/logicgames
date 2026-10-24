@@ -1,7 +1,7 @@
 // ===== Переключение между играми =====
 const GAMES = {
   suguru: { app: SuguruApp, title: 'Сугуру', size: '9×9', about: 'Области с числами, одинаковые не касаются' },
-  sudoku: { app: SudokuApp, title: 'Судоку', size: '12×12', about: 'Символы 1–9, A, B, C в строках, столбцах и блоках' },
+  sudoku: { app: SudokuApp, title: 'Судоку', size: '12×12', about: 'Числа 1–12 в строках, столбцах и блоках' },
 };
 const SHELL_KEY = 'logicgames-dalya-v1';
 let current = 'suguru';

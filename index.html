@@ -177,9 +177,11 @@ canvas.hearts { position: fixed; inset: 0; width: 100%; height: 100%; pointer-ev
 .board-wrap.sd { width: min(100%, calc(100svh - 392px)); }
 .board.sd { grid-template-columns: repeat(12, 1fr); grid-template-rows: repeat(12, 1fr); }
 .board.sd .cell { font-size: clamp(12px, 4.2vw, 20px); }
-.board.sd .notes { inset: 1px; grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(3, 1fr); font-size: clamp(6px, 1.85vw, 9px); }
+.board.sd .cell.two { font-size: clamp(10px, 3.3vw, 16px); letter-spacing: -.06em; }
+.board.sd .notes { inset: 1px; display: flex; flex-wrap: wrap; align-content: center; justify-content: center; gap: 1px 3px;
+  font-size: clamp(7px, 2.2vw, 10px); letter-spacing: -.04em; overflow: hidden; }
 .pad.sd { grid-template-columns: repeat(6, 1fr); gap: 6px; }
-.pad.sd button { height: 48px; font-size: 21px; }
+.pad.sd button { height: 48px; font-size: 21px; letter-spacing: -.03em; }
 .pad.sd.noting button { font-size: 16px; }
 .pad.sd button.full:not(:disabled) { opacity: .4; box-shadow: none; }
 @media (prefers-reduced-motion: reduce) { .cell.hint, .sheet { animation: none; } .pad button { transition: none; } }
@@ -826,10 +828,10 @@ const SuguruApp = (() => {
 })();
 
 // ===== Движок судоку 12×12: генератор, решатель, логические шаги =====
-// Блоки 3 строки × 4 столбца, символы 1–9, A, B, C (значения 1..12)
+// Блоки 3 строки × 4 столбца, числа 1–12
 const Sudoku12 = (() => {
   const N = 12, C = N * N, BR = 3, BC = 4, ALL = (1 << N) - 1;
-  const SYM = ['', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C'];
+  const SYM = ['', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
   const rowOf = i => (i / N) | 0, colOf = i => i % N;
   const boxOf = i => ((rowOf(i) / BR) | 0) * (N / BC) + ((colOf(i) / BC) | 0);
   const UNITS = [];
@@ -1105,15 +1107,17 @@ const SudokuApp = (() => {
       d.classList.toggle('area', sel >= 0 && i !== sel && (E.rowOf(i) === sr || E.colOf(i) === sc || E.boxOf(i) === sb));
       d.classList.toggle('same', sel >= 0 && i !== sel && !!selVal && v === selVal);
       d.classList.toggle('bad', bad.has(i) && !S.p.givens[i]);
+      d.classList.toggle('two', v > 9);
       if (v) d.textContent = SYM[v];
       else if (S.notes[i]) {
         let h = '<div class="notes">';
-        for (let k = 1; k <= N; k++) h += `<span>${S.notes[i] & (1 << (k - 1)) ? SYM[k] : ''}</span>`;
+        // показываем только отмеченные числа подряд: двузначным в сетке 4×3 тесно
+        for (let k = 1; k <= N; k++) if (S.notes[i] & (1 << (k - 1))) h += `<span>${SYM[k]}</span>`;
         d.innerHTML = h + '</div>';
       } else d.textContent = '';
     }
     const locked = sel < 0 || !!S.p.givens[sel] || S.done;
-    // символ, который уже стоит 12 раз, приглушаем
+    // число, которое уже стоит 12 раз, приглушаем
     padBtns.forEach((b, k) => { b.disabled = locked; b.classList.toggle('full', count[k + 1] >= N); });
     $('sdPad').classList.toggle('noting', notesMode);
     $('sdHints').textContent = S.hints;
@@ -1169,7 +1173,7 @@ const SudokuApp = (() => {
     const wrong = S.vals.findIndex((v, i) => v && v !== sol[i]);
     if (wrong >= 0) {
       S.sel = wrong; render(); flash(wrong);
-      sheet({ title: 'Тут закралась ошибка', body: '<p>В выделенной клетке стоит неверный символ. Если его убрать, дальше пойдёт легче.</p>', ok: 'Стереть', cancel: 'Оставить' })
+      sheet({ title: 'Тут закралась ошибка', body: '<p>В выделенной клетке стоит неверное число. Если его убрать, дальше пойдёт легче.</p>', ok: 'Стереть', cancel: 'Оставить' })
         .then(ok => { if (ok) { snapshot(); S.vals[wrong] = 0; afterMove(); } });
       return;
     }
@@ -1189,12 +1193,12 @@ const SudokuApp = (() => {
         const IN = { row: 'одной строке', col: 'одном столбце', box: 'одном блоке' };
         const REST = { row: 'этой строки', col: 'этого столбца', box: 'этого блока' };
         text = trick.type === 'locked'
-          ? `Здесь ${s}. Чтобы это увидеть, нужен приём посложнее: в ${IN[trick.from.kind]} символ ${SYM[trick.value]} может встать только в клетки, которые лежат в ${IN[trick.line.kind]}. Значит, в остальных клетках ${REST[trick.line.kind]} ${SYM[trick.value]} быть не может.`
-          : `Здесь ${s}. Чтобы это увидеть, нужен приём посложнее: в ${IN[trick.unit.kind]} есть две клетки, где возможны только одни и те же два символа. Они займут эти клетки, поэтому в остальных клетках ${REST[trick.unit.kind]} этих символов нет.`;
+          ? `Здесь ${s}. Чтобы это увидеть, нужен приём посложнее: в ${IN[trick.from.kind]} число ${SYM[trick.value]} может встать только в клетки, которые лежат в ${IN[trick.line.kind]}. Значит, в остальных клетках ${REST[trick.line.kind]} ${SYM[trick.value]} быть не может.`
+          : `Здесь ${s}. Чтобы это увидеть, нужен приём посложнее: в ${IN[trick.unit.kind]} есть две клетки, где возможны только одни и те же два числа. Они займут эти клетки, поэтому в остальных клетках ${REST[trick.unit.kind]} этих чисел нет.`;
       } else if (step.type === 'naked') {
-        text = `В этой клетке может стоять только ${s}: все остальные символы уже есть в её строке, столбце или блоке.`;
+        text = `В этой клетке может стоять только ${s}: все остальные числа уже есть в её строке, столбце или блоке.`;
       } else {
-        text = `Посмотри на ${step.unit.kind === 'box' ? 'выделенный блок' : step.unit.kind === 'row' ? 'эту строку' : 'этот столбец'}: символ ${s} может встать только в эту клетку, в остальных он повторил бы символ из той же строки, столбца или блока.`;
+        text = `Посмотри на ${step.unit.kind === 'box' ? 'выделенный блок' : step.unit.kind === 'row' ? 'эту строку' : 'этот столбец'}: число ${s} может встать только в эту клетку, в остальных оно повторило бы число из той же строки, столбца или блока.`;
       }
     } else {
       const empty = []; for (let k = 0; k < C; k++) if (!S.vals[k]) empty.push(k);
@@ -1218,16 +1222,16 @@ const SudokuApp = (() => {
     demo.forEach((v, k) => {
       const x = 2 + (k % 4) * 15, y = 9.5 + ((k / 4) | 0) * 15;
       g += `<rect x="${x}" y="${y}" width="15" height="15" fill="var(--area)" stroke="var(--line)" stroke-width="1"/>
-        <text x="${x + 7.5}" y="${y + 11}" text-anchor="middle" font-size="9.5" font-family="Unbounded, sans-serif" fill="var(--ink)">${SYM[v]}</text>`;
+        <text x="${x + 7.5}" y="${y + 11}" text-anchor="middle" font-size="${v > 9 ? 7.5 : 9.5}" font-family="Unbounded, sans-serif" fill="var(--ink)">${SYM[v]}</text>`;
     });
     g += '<rect x="2" y="9.5" width="60" height="45" fill="none" stroke="var(--ink)" stroke-width="2.5"/>';
     sheet({
       title: 'Судоку 12×12',
       body: `
         <div class="rule"><svg viewBox="0 0 64 64">${g}</svg>
-          <p>Поле разбито на 12 блоков по 3×4 клетки. В каждом блоке стоят символы 1–9, A, B, C, каждый по одному разу.</p></div>
-        <p>То же правило для каждой строки и каждого столбца: в них все 12 символов, без повторов. A, B, C можно считать числами 10, 11 и 12.</p>
-        <p class="muted">Нажми на клетку, потом на символ. В режиме «Заметки» можно ставить маленькие пометки. Повторы подсвечиваются красным.</p>`,
+          <p>Поле разбито на 12 блоков по 3×4 клетки. В каждом блоке стоят числа от 1 до 12, каждое по одному разу.</p></div>
+        <p>То же правило для каждой строки и каждого столбца: в них все числа от 1 до 12, без повторов.</p>
+        <p class="muted">Нажми на клетку, потом на число. В режиме «Заметки» можно ставить маленькие пометки. Повторы подсвечиваются красным.</p>`,
       ok: 'Понятно',
     });
   }
@@ -1307,7 +1311,7 @@ const SudokuApp = (() => {
 // ===== Переключение между играми =====
 const GAMES = {
   suguru: { app: SuguruApp, title: 'Сугуру', size: '9×9', about: 'Области с числами, одинаковые не касаются' },
-  sudoku: { app: SudokuApp, title: 'Судоку', size: '12×12', about: 'Символы 1–9, A, B, C в строках, столбцах и блоках' },
+  sudoku: { app: SudokuApp, title: 'Судоку', size: '12×12', about: 'Числа 1–12 в строках, столбцах и блоках' },
 };
 const SHELL_KEY = 'logicgames-dalya-v1';
 let current = 'suguru';
