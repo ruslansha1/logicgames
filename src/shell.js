@@ -7,7 +7,8 @@ const GAMES = {
 const SHELL_KEY = 'logicgames-dalya-v1';
 let current = 'suguru';
 
-function switchTo(id) {
+// daily: дата задачи дня, которую надо открыть в этой игре
+function switchTo(id, daily) {
   if (!GAMES[id]) id = 'suguru';
   current = id;
   for (const k in GAMES) $('screen-' + k).hidden = k !== id;
@@ -16,7 +17,8 @@ function switchTo(id) {
   $('brandSize').textContent = g.size;
   document.title = `${g.title} для Дали`;
   if (!Profiles.locked) try { localStorage.setItem(Profiles.key(SHELL_KEY), JSON.stringify({ current })); } catch (e) {}
-  g.app.show();
+  g.app.show(daily);
+  Daily.changed();
 }
 
 function pickGame() {
@@ -44,7 +46,8 @@ async function initShell() {
     if ($('sheetRoot').innerHTML) return;
     GAMES[current].app.keydown(e);
   });
-  setInterval(() => { if (!document.hidden) GAMES[current].app.tick(); }, 1000);
+  setInterval(() => { if (!document.hidden) { GAMES[current].app.tick(); Daily.tick(); } }, 1000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) Daily.tick(); });
   Track.initUI();
   await Profiles.welcome();
   Track.refresh();

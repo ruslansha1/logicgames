@@ -176,16 +176,16 @@ const Suguru = (() => {
   }
   function logicSolve(geo, givens, level) {
     const grid = givens.slice(), cd = candidatesFor(geo, grid);
-    let steps = 0;
+    let steps = 0, tricks = 0;
     for (;;) {
       const st = nextStep(geo, grid, cd, level);
       if (!st) break;
       steps++;
-      if (st.type === 'elim') { cd[st.cell] &= ~(1 << (st.value - 1)); continue; }
+      if (st.type === 'elim') { tricks++; cd[st.cell] &= ~(1 << (st.value - 1)); continue; }
       grid[st.cell] = st.value; cd[st.cell] = 1 << (st.value - 1);
       for (const p of geo.peers[st.cell]) if (!grid[p]) cd[p] &= ~(1 << (st.value - 1));
     }
-    return { solved: grid.every(x => x), steps };
+    return { solved: grid.every(x => x), steps, tricks };
   }
 
   // --- Генерация ---
