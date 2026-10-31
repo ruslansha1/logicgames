@@ -76,7 +76,9 @@ const Killer = (() => {
         const front = [];
         for (const i of cells) for (const j of NB(i)) if (cageOf[j] < 0 && !(used & (1 << (sol[j] - 1))) && !front.includes(j)) front.push(j);
         if (!front.length) break;
-        front.sort((a, b) => free(a) - free(b) || Math.random() - .5);
+        // случайный порядок среди равных; ключи заранее, чтобы сортировка не зависела от браузера
+        const rk = new Map(front.map(j => [j, Math.random()]));
+        front.sort((a, b) => free(a) - free(b) || rk.get(a) - rk.get(b));
         const j = Math.random() < .7 ? front[0] : front[Math.random() * front.length | 0];
         cells.push(j); used |= 1 << (sol[j] - 1); cageOf[j] = cages.length;
       }
@@ -267,16 +269,16 @@ const Killer = (() => {
   }
   function logicSolve(givens, geo, level) {
     const grid = givens.slice(), cd = candidatesFor(grid, geo);
-    let steps = 0, used = 0;
+    let steps = 0, used = 0, tricks = 0;
     const max = { naked: 1, hidden: 1, cageLast: 1, cageHidden: 1, cage: 1, locked: 2, cageLock: 2, pair: 2, innie: 3, outie: 3, innie2: 3 };
     for (;;) {
       const st = nextStep(grid, cd, geo, level);
       if (!st) break;
-      steps++; used = Math.max(used, max[st.type]);
+      steps++; used = Math.max(used, max[st.type]); if (max[st.type] > 1) tricks += max[st.type] - 1;
       if (st.elim) { for (const e of st.elim) cd[e.cell] &= ~e.mask; if (st.elim.some(e => !cd[e.cell])) break; continue; }
       place(grid, cd, geo, st.cell, st.value);
     }
-    return { solved: grid.every(x => x), steps, used, grid };
+    return { solved: grid.every(x => x), steps, used, tricks, grid };
   }
 
   // Делит клетку-сумму на две связные части: так у игрока появляется больше подсказок-сумм

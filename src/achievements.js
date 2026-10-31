@@ -10,6 +10,7 @@ const LEVELS = { easy: 'Лёгкая', medium: 'Средняя', hard: 'Слож
 
 const Track = (() => {
   const META = {};   // зарегистрированные игры, в порядке подключения
+  const GLOBAL = []; // наборы общих достижений от других модулей (например, задача дня)
   const KEY = () => Profiles.key('logicgames-stats');
   let st = null, ticks = 0;
   const blank = () => ({ games: {}, days: { last: '', streak: 0, best: 0, count: 0 }, run: 0, bestRun: 0, flags: {}, ach: {}, seen: {}, init: false });
@@ -49,6 +50,7 @@ const Track = (() => {
 
   // ----- события от игр -----
   function register(id, meta) { META[id] = meta; }
+  function addGlobal(f) { GLOBAL.push(f); }
   function seed(gid, old) {
     // перенос побед и рекордов, которые игры хранили сами до появления профилей
     const g = G(gid);
@@ -118,6 +120,7 @@ const Track = (() => {
       );
       if (m.extra) list.push(...m.extra(g, n).map(d => Object.assign({ game: gid }, d)));
     }
+    for (const f of GLOBAL) list.push(...f());
     list.push({ id: 'collector', icon: 'star', title: 'Коллекционер', tiers: [5, 15, 30], val: () => Object.entries(st.ach).reduce((a, [k, v]) => a + (k === 'collector' ? 0 : v.tier), 0), desc: t => `Открой ${n(t, 'уровень', 'уровня', 'уровней')} других достижений` });
     return list;
   }
@@ -157,6 +160,9 @@ const Track = (() => {
     bolt: '<path d="M13.5 2 4.5 13.5h6.5L10 22l9.5-12H13Z"/>',
     calc: '<rect x="5" y="2.5" width="14" height="19" rx="2.5"/><path d="M8.5 6.5h7M9 11v4M7 13h4M13.5 12h3M13.5 15h3M8 18.5h0M12 18.5h0M16 18.5h0"/>',
     snow: '<path d="M12 2.5v19M3.8 7.2l16.4 9.6M3.8 16.8l16.4-9.6M9.5 4l2.5 2.5L14.5 4M9.5 20l2.5-2.5 2.5 2.5M3.4 10.3l3.4.9-.9 3.4M20.6 13.7l-3.4-.9.9-3.4M5.9 9.4l.9-3.4 3.4.9M18.1 14.6l-.9 3.4-3.4-.9"/>',
+    calendar: '<rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/><path d="m9 15 2 2 4-4"/>',
+    triple: '<rect x="2.5" y="8.5" width="5.5" height="7" rx="1.4"/><rect x="9.25" y="5.5" width="5.5" height="13" rx="1.4"/><rect x="16" y="8.5" width="5.5" height="7" rx="1.4"/><path d="m10.5 12 1.2 1.3 2-2.3"/>',
+    rewind: '<path d="M3.5 12a8.5 8.5 0 1 0 2.5-6"/><path d="M3 3.5V8h4.5"/><path d="M12 7.5V12l3 2"/>',
     star: '<path d="m12 2.8 2.8 5.8 6.3.9-4.6 4.4 1.1 6.3L12 17.2l-5.6 3 1.1-6.3-4.6-4.4 6.3-.9Z"/>',
   };
   // зубчатый край медали
@@ -183,16 +189,21 @@ const Track = (() => {
       ${grad('gBronzeR', ['#e3a066', '#8e4a1c'])}${grad('gBronzeF', ['#f6c08c', '#c06f33', '#a55a24'])}
       ${grad('gSilverR', ['#e9edf5', '#6f7890'])}${grad('gSilverF', ['#ffffff', '#c3cad8', '#9aa3b8'])}
       ${grad('gGoldR', ['#ffe07a', '#a86f00'])}${grad('gGoldF', ['#fff3b0', '#f5c542', '#d99a10'])}
-      ${grad('gDiamondR', ['#9ff0ff', '#5a4bd1'])}${grad('gDiamondF', ['#e6fbff', '#7fd8ff', '#8a7dff', '#c47dff'])}
+      ${grad('gFlame', ['#ffd36b', '#ff8a3d', '#ff4f6d'])}${grad('gDiamondR', ['#9ff0ff', '#5a4bd1'])}${grad('gDiamondF', ['#e6fbff', '#7fd8ff', '#8a7dff', '#c47dff'])}
     </defs></svg>`;
     document.body.appendChild(div.firstElementChild);
   }
 
   // ----- всплывающее уведомление -----
   const queue = [];
-  let showing = false;
+  let showing = false, hurry = null; // hurry: досрочно убрать обычное уведомление
   function toast(d, tier) {
-    queue.push([d, tier]);
+    // торжество задачи дня показываем раньше обычных уведомлений
+    if (d.group === 'daily') {
+      const k = queue.findIndex(([q]) => q.group !== 'daily'); queue.splice(k < 0 ? queue.length : k, 0, [d, tier]);
+      if (showing && hurry) hurry();
+    }
+    else queue.push([d, tier]);
     if (!showing) setTimeout(nextToast, 350);
   }
   function nextToast() {
@@ -200,6 +211,7 @@ const Track = (() => {
     if (!it) { showing = false; return; }
     showing = true;
     const [d, tier] = it, names = tierNames(d.tiers.length), t = names[tier - 1];
+    if (d.group === 'daily') return celebrate(d, tier, t, names);
     const el = document.createElement('button');
     el.className = `ach-toast t-${t}`;
     el.innerHTML = `<span class="ach-toast-medal">${medal(d, tier)}<i></i><i></i><i></i><i></i><i></i><i></i></span>
@@ -209,11 +221,37 @@ const Track = (() => {
     requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('in')));
     let done = false;
     const timer = setTimeout(finish, queue.length > 1 ? 2600 : 4200);
+    hurry = finish;
     function finish() {
-      if (done) return; done = true; clearTimeout(timer);
+      if (done) return; done = true; clearTimeout(timer); hurry = null;
       el.classList.remove('in'); el.classList.add('out');
       setTimeout(() => { el.remove(); nextToast(); }, 450);
     }
+    refreshDot();
+  }
+  // Большое торжество для достижений задачи дня: медаль вылетает в центр, лучи, конфетти
+  function celebrate(d, tier, t, names) {
+    const el = document.createElement('div');
+    el.className = `ach-party t-${t}`;
+    const bits = Array.from({ length: 28 }, (_, k) => {
+      const a = k / 28 * Math.PI * 2 + Math.random() * .3, r = 110 + Math.random() * 90;
+      return `<i style="--dx:${Math.round(Math.cos(a) * r)}px;--dy:${Math.round(Math.sin(a) * r)}px;--d:${(Math.random() * .25).toFixed(2)}s;--c:${['#ffd36b', '#ff7aa6', '#ab9dff', '#9ff0ff', '#ff9f43'][k % 5]};--rot:${Math.random() * 360 | 0}deg"></i>`;
+    }).join('');
+    el.innerHTML = `<div class="ap-card" role="dialog" aria-label="Новое достижение">
+      <span class="ap-rays"></span><span class="ap-medal">${medal(d, tier)}</span><span class="ap-bits">${bits}</span>
+      <small>Задача дня · ${names.length > 1 ? TIERS[t] : 'достижение'}</small>
+      <b>${d.title}</b><em>${d.desc(d.tiers[tier - 1])}</em>
+      <span class="ap-tap">Нажми, чтобы посмотреть в витрине</span></div>`;
+    document.body.appendChild(el);
+    requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('in')));
+    let done = false;
+    const timer = setTimeout(() => finish(false), 4800);
+    function finish(go) {
+      if (done) return; done = true; clearTimeout(timer);
+      el.classList.remove('in'); el.classList.add('out');
+      setTimeout(() => { el.remove(); if (go) showcase(d.id); nextToast(); }, 380);
+    }
+    el.onclick = e => finish(e.target.closest('.ap-card'));
     refreshDot();
   }
   function refreshDot() { const b = $('profileBtn'); if (b) b.classList.toggle('dot', unseen() > 0); }
@@ -251,7 +289,8 @@ const Track = (() => {
     const all = defs();
     const levels = all.reduce((a, d) => a + d.tiers.length, 0);
     const got = all.reduce((a, d) => a + ((st.ach[d.id] || {}).tier || 0), 0);
-    const groups = [['Общие', all.filter(d => !d.game)], ...Object.keys(META).map(g => [META[g].title, all.filter(d => d.game === g)])];
+    const groups = [['Общие', all.filter(d => !d.game && !d.group)], ...Object.keys(META).map(g => [META[g].title, all.filter(d => d.game === g)])];
+    const daily = all.filter(d => d.group === 'daily'), ds = typeof Daily !== 'undefined' ? Daily.summary() : null;
     const card = d => {
       const p = progressOf(d), names = tierNames(d.tiers.length), isNew = st.ach[d.id] && !st.seen[d.id];
       return `<button class="badge ${p.r ? 't-' + names[p.r - 1] : 'locked'} ${isNew ? 'new' : ''}" data-id="${d.id}">
@@ -266,6 +305,10 @@ const Track = (() => {
         <div class="sc-ring" style="--p:${Math.round(got / levels * 100)}"><b>${got}</b><small>из ${levels}</small></div>
         <div><h2>Витрина достижений</h2><p class="muted">${Profiles.esc(Profiles.active().name)}, открыто ${n(got, 'уровень', 'уровня', 'уровней')} в ${n(Object.keys(st.ach).length, 'достижении', 'достижениях', 'достижениях')} из ${all.length}.</p></div>
       </div>
+      ${daily.length ? `<section class="sc-daily">
+        <div class="sc-daily-h"><span class="dl-fire ${ds && ds.todayDone ? 'lit' : ''}">${ds ? Daily.FLAME : ''}</span>
+          <div><h3>Задача дня</h3><small>${ds ? `серия ${ds.streak} · лучшая ${ds.best} · ${n(ds.total, 'задача решена', 'задачи решено', 'задач решено')}` : ''}</small></div></div>
+        <div class="badges">${daily.map(card).join('')}</div></section>` : ''}
       ${groups.map(([t, ds]) => `<h3 class="sc-group">${t}</h3><div class="badges">${ds.map(card).join('')}</div>`).join('')}
       <button class="sc-back" id="scBack">← К профилю</button>`, 'showcase');
     el.querySelectorAll('.badge').forEach(b => b.onclick = () => detail(all.find(d => d.id === b.dataset.id)));
@@ -321,6 +364,10 @@ const Track = (() => {
         <span class="pf-show-txt"><b>Витрина достижений</b><small>${got} из ${levels} уровней${unseen() ? ` · <em>новых: ${unseen()}</em>` : ''}</small></span>
         <span class="chev">›</span>
       </button>
+      ${typeof Daily !== 'undefined' ? (() => { const ds = Daily.summary(); return `<button class="pf-daily ${ds.todayDone ? 'lit' : ''}" id="pfDaily">
+        <span class="dl-fire">${Daily.FLAME}</span>
+        <span class="pf-show-txt"><b>Задача дня</b><small>Серия ${ds.streak} · лучшая ${ds.best} · решено ${ds.total} · заморозок ${ds.freezes}</small></span>
+        <span class="chev">›</span></button>`; })() : ''}
       <h3 class="sc-group">По играм</h3>
       ${gameRows}
       <h3 class="sc-group">Игроки на этом устройстве</h3>
@@ -330,6 +377,7 @@ const Track = (() => {
       </div>
       <p class="muted small">Профили и прогресс хранятся только на этом устройстве.</p>`, 'profile');
     $('pfShow').onclick = () => showcase();
+    if ($('pfDaily')) $('pfDaily').onclick = () => Daily.open();
     $('pfEdit').onclick = async () => { await Profiles.edit(); renderAvatar(); profile(); };
     $('pfAdd').onclick = async () => { if (!(await Profiles.add())) profile(); };
     el.querySelectorAll('.pf-row[data-id]').forEach(b => b.onclick = () => Profiles.switchTo(b.dataset.id));
@@ -353,5 +401,5 @@ const Track = (() => {
   addEventListener('pagehide', save);
   addEventListener('lg-save', save);
   document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
-  return { register, seed, start, move, bump, hint, tick, win, wins: gid => winsOf(G(gid)), initUI, refresh: renderAvatar, profile, showcase };
+  return { register, addGlobal, panel, seed, start, move, bump, hint, tick, win, wins: gid => winsOf(G(gid)), initUI, refresh: renderAvatar, profile, showcase };
 })();

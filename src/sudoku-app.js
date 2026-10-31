@@ -5,6 +5,7 @@ const SudokuApp = (() => {
   const LVL_NAME = { easy: 'Лёгкая', medium: 'Средняя', hard: 'Сложная' };
 
   let S = null;      // текущая партия
+  let F = null, D = {}, gen = 0; // отложенная обычная партия, начатые задачи дня, номер запроса поля
   let level = 'medium';
   let cells = [], padBtns = [];
   let notesMode = false;
@@ -12,20 +13,26 @@ const SudokuApp = (() => {
   function load() {
     try {
       const d = JSON.parse(localStorage.getItem(Profiles.key(KEY)) || 'null');
-      if (d) { level = d.level || level; if (d.game && d.game.p) S = d.game; if (d.stats) Track.seed('sudoku', d.stats); }
+      if (d) { level = d.level || level; F = d.free || null; D = d.dailies || {}; if (d.game && d.game.p) S = d.game; if (d.stats) Track.seed('sudoku', d.stats); }
     } catch (e) {}
   }
   function save() {
     if (Profiles.locked) return;
-    try { localStorage.setItem(Profiles.key(KEY), JSON.stringify({ level, game: S })); } catch (e) {}
+    try { localStorage.setItem(Profiles.key(KEY), JSON.stringify({ level, game: S, free: F, dailies: D })); } catch (e) {}
+  }
+
+  function fresh(p, daily = null) {
+    return { p, vals: p.givens.slice(), notes: new Array(C).fill(0), elapsed: 0, hints: 0, mistakes: 0, done: false, sel: -1, history: [], daily };
   }
 
   function newGame(lvl = level) {
     level = lvl;
     $('sdLoading').hidden = false;
+    const tok = ++gen;
     setTimeout(() => {
+      if (tok !== gen) return;
       const p = E.generate(lvl);
-      S = { p, vals: p.givens.slice(), notes: new Array(C).fill(0), elapsed: 0, hints: 0, mistakes: 0, done: false, sel: -1, history: [] };
+      S = fresh(p);
       $('sdLoading').hidden = true;
       setup(); save(); Track.start('sudoku');
     }, 30);
@@ -218,19 +225,49 @@ const SudokuApp = (() => {
 
   function win() {
     S.done = true;
+    const dl = S.daily ? Daily.solved('sudoku', S.daily, { elapsed: S.elapsed, hints: S.hints, mistakes: S.mistakes || 0 }) : null;
     const { record } = Track.win('sudoku', { lvl: S.p.difficulty, elapsed: S.elapsed, hints: S.hints, mistakes: S.mistakes || 0 });
     save(); render(); hearts();
     sheet({
       cls: 'win',
-      title: praise(),
+      title: dl ? dl.title : praise(),
       body: `<div class="stats">
         <div><span>Время</span><b>${fmt(S.elapsed)}</b></div>
         <div><span>Уровень</span><b>${LVL_NAME[S.p.difficulty]}</b></div>
         <div><span>Подсказок</span><b>${S.hints}</b></div>
         <div><span>Ошибок</span><b>${S.mistakes || 0}</b></div></div>
-        ${record ? '<p class="muted">Новый рекорд без подсказок на этом уровне.</p>' : ''}`,
-      ok: 'Ещё одну', cancel: 'Полюбоваться',
-    }).then(ok => { if (ok) newGame(S.p.difficulty); });
+        ${dl ? dl.html : ''}${record && !dl ? '<p class="muted">Новый рекорд без подсказок на этом уровне.</p>' : ''}`,
+      ok: dl ? 'К задачам дня' : 'Ещё одну', cancel: 'Полюбоваться',
+    }).then(ok => { if (!ok) return; if (dl) Daily.open(); else newGame(S.p.difficulty); });
+    if (dl) Daily.changed();
+  }
+
+  // ===== Задача дня =====
+  // Обычная партия откладывается в F, недорешённые задачи дня ждут в D
+  function openDaily(date) {
+    if (S && S.daily === date) { S.sel = -1; setup(); Daily.changed(); return; }
+    const tok = ++gen, ld = $('sdLoading');
+    ld.textContent = 'Готовлю задачу дня…'; ld.hidden = false;
+    setTimeout(() => {
+      if (tok !== gen) return;
+      const p = Daily.puzzle('sudoku', date);
+      if (S && S.daily) { if (!S.done) D[S.daily] = S; } else if (S) F = S;
+      const isNew = !D[date];
+      S = D[date] || fresh(p, date); delete D[date];
+      S.sel = -1;
+      ld.hidden = true; ld.textContent = 'Рисую новое поле…';
+      setup(); save(); if (isNew) Track.start('sudoku');
+      Daily.changed();
+    }, 30);
+  }
+  function leaveDaily() {
+    if (!S || !S.daily) return;
+    ++gen; $('sdLoading').hidden = true;
+    if (!S.done) D[S.daily] = S;
+    const ks = Object.keys(D).sort(); while (ks.length > 14) delete D[ks.shift()];
+    S = F; F = null;
+    if (S) { S.sel = -1; setup(); save(); } else newGame(level);
+    Daily.changed();
   }
 
   // ===== Запуск =====
@@ -276,10 +313,11 @@ const SudokuApp = (() => {
     if (S && !S.done && $('sdLoading').hidden) { S.elapsed++; Track.tick('sudoku'); $('sdTimer').textContent = fmt(S.elapsed); if (S.elapsed % 10 === 0) save(); }
   }
   let shown = false;
-  function show() {
-    if (shown) return;
+  function show(daily) {
+    if (shown) { if (daily) openDaily(daily); return; }
     shown = true; bind();
-    if (S) { S.sel = -1; setup(); } else newGame(level);
+    if (S) { S.sel = -1; setup(); }
+    if (daily) openDaily(daily); else if (!S) newGame(level);
     try { if (!localStorage.getItem(Profiles.key(KEY + '-seen'))) { localStorage.setItem(Profiles.key(KEY + '-seen'), '1'); rules(); } } catch (e) {}
   }
   load();
@@ -287,5 +325,5 @@ const SudokuApp = (() => {
   addEventListener('pagehide', () => S && save());
   addEventListener('lg-save', () => S && save());
   document.addEventListener('visibilitychange', () => { if (document.hidden && S) save(); });
-  return { show, tick, keydown, rules, solved: () => Track.wins('sudoku') };
+  return { show, openDaily, leaveDaily, daily: () => (S && S.daily) || null, tick, keydown, rules, solved: () => Track.wins('sudoku') };
 })();
