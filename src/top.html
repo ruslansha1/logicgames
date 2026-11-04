@@ -189,6 +189,53 @@ svg.lines .cage.on .dash { stroke: var(--accent); stroke-width: .05; opacity: 1;
 .pad.ks button { height: 54px; font-size: 22px; border-radius: 12px; padding: 0; }
 .pad.ks.noting button { font-size: 16px; }
 .pad.ks button.full:not(:disabled) { opacity: .4; box-shadow: none; }
+/* Нонограммы */
+.game-ico.nonogram { background: var(--area); }
+.game-ico.nonogram::before { content: ""; position: absolute; left: 3px; top: 4px; width: 7px; height: 7px; color: var(--accent);
+  box-shadow: 7px 0, 21px 0, 0 7px, 7px 7px, 14px 7px, 21px 7px, 28px 7px, 0 14px, 7px 14px, 14px 14px, 21px 14px, 28px 14px, 7px 21px, 14px 21px, 21px 21px, 14px 28px; }
+.board-wrap.ng { width: 100%; display: flex; justify-content: center; }
+.ng-board { display: grid; position: relative; background: var(--surface); border-radius: 10px; box-shadow: var(--shadow); padding: 4px 6px 6px 4px;
+  touch-action: none; -webkit-touch-callout: none; font-variant-numeric: tabular-nums; }
+.ng-corner { grid-row: 1; grid-column: 1; width: 100%; height: 100%; display: block; align-self: stretch; }
+.ng-clue { display: flex; color: var(--ink); font-weight: 700; font-size: clamp(9px, calc(var(--cs) * .5), 17px); line-height: 1; border-radius: 6px; }
+.ng-clue.row { justify-content: flex-end; align-items: center; gap: max(3px, calc(var(--cs) * .16)); padding-right: max(4px, calc(var(--cs) * .2)); margin-right: 1px; }
+.ng-clue.col { flex-direction: column; justify-content: flex-end; align-items: center; gap: max(1px, calc(var(--cs) * .1)); padding-bottom: max(4px, calc(var(--cs) * .18)); margin-bottom: 1px; }
+.ng-clue.hl { background: var(--area); color: var(--user); }
+.ng-clue.done { color: var(--muted); opacity: .45; }
+.ng-clue.bad { color: var(--error); }
+.ng-clue.hint { animation: pulse 1.2s ease-in-out 3; background: var(--accent-soft); }
+.nc { position: relative; background: var(--surface); border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.nc.hl { background: var(--area); }
+.nc.cur { box-shadow: inset 0 0 0 2px var(--user); }
+.nc.br { border-right: 2px solid var(--ink); }
+.nc.bb { border-bottom: 2px solid var(--ink); }
+.nc.er { border-right: 2px solid var(--ink); }
+.nc.eb { border-bottom: 2px solid var(--ink); }
+.nc.et { border-top: 2px solid var(--ink); }
+.nc.el { border-left: 2px solid var(--ink); }
+.nc::after { content: ""; position: absolute; inset: 1px; border-radius: max(1px, calc(var(--cs) * .1)); transform: scale(0); transition: transform .12s ease-out, background-color .3s; background: var(--ink); }
+.nc.f::after { transform: scale(1); }
+.nc.x::before, .nc.dot::before { content: ""; position: absolute; inset: 24%;
+  background: linear-gradient(45deg, transparent 44%, var(--muted) 44% 56%, transparent 56%), linear-gradient(-45deg, transparent 44%, var(--muted) 44% 56%, transparent 56%); }
+.nc.dot:not(.x)::before { inset: 42%; border-radius: 50%; background: var(--line); }
+.nc.hint { animation: pulse 1.2s ease-in-out 3; background: var(--accent-soft); }
+.nc.hint-x { animation: pulse 1.2s ease-in-out 3; outline: 2px dashed var(--accent); outline-offset: -3px; }
+.nc.oops { animation: pulse 1.2s ease-in-out 3; background: color-mix(in srgb, var(--error) 22%, var(--surface)); }
+.ng-board.won .nc { border-color: transparent; }
+.ng-board.won .nc::after { background: var(--accent); inset: 0; border-radius: 0; }
+.ng-board.won .nc.x::before, .ng-board.won .nc.dot::before { opacity: 0; transition: opacity .4s; }
+.ng-board.won .ng-clue { opacity: .35; }
+.ng-modes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.ng-modes button { height: 52px; border: 1px solid var(--line); background: var(--surface); border-radius: 14px; box-shadow: var(--shadow);
+  display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: 700; font-size: 15px; color: var(--muted); }
+.ng-modes button i { width: 22px; height: 22px; border-radius: 5px; flex: none; position: relative; }
+#ngModeFill i { background: var(--muted); }
+#ngModeCross i { box-shadow: inset 0 0 0 1.5px var(--line); }
+#ngModeCross i::before { content: ""; position: absolute; inset: 4px; background: linear-gradient(45deg, transparent 42%, currentColor 42% 58%, transparent 58%), linear-gradient(-45deg, transparent 42%, currentColor 42% 58%, transparent 58%); }
+.ng-modes button[aria-pressed="true"] { border-color: var(--user); color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--user), var(--shadow); background: color-mix(in srgb, var(--user) 9%, var(--surface)); }
+#ngModeFill[aria-pressed="true"] i { background: var(--ink); }
+.tools button:disabled { opacity: .35; }
+.ng-pic { width: 128px; height: 128px; align-self: center; border-radius: 12px; box-shadow: var(--shadow); }
 /* Профиль */
 .avatar-btn { width: 40px; height: 40px; border-radius: 50%; border: 0; background: transparent; padding: 0; display: grid; place-items: center; position: relative; }
 .avatar-btn.dot::after { content: ""; position: absolute; top: 0; right: 0; width: 11px; height: 11px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--paper); animation: blink 1.6s ease-in-out infinite; }
@@ -535,7 +582,7 @@ svg.lines .cage.on .dash { stroke: var(--accent); stroke-width: .05; opacity: 1;
 @media (prefers-reduced-motion: reduce) { .ap-rays, .ach-party .ap-medal, .ach-party .ap-bits i, .sc-daily::before, .db-main.pulse::after, .daily-bar.lit .db-flame, .dl-fire { animation: none !important; } .ap-card { transition: none; } }
 @media (max-width: 360px) { .badges { gap: 6px; } .badge-medal { width: 50px; height: 50px; } .pf-stats b { font-size: 16px; } .brand h1 { font-size: 22px; } .games-btn { padding: 0 9px 0 8px; } }
 @media (prefers-reduced-motion: reduce) { .cell.hint, .sheet, .badge.new .badge-medal, .ach-toast-medal, .ach-toast-medal i, .ach-detail .ach-big::before, .pf-showcase::before, .avatar-btn.dot::after { animation: none !important; } .pad button, .ach-toast { transition: none; } }
-@media (max-height: 640px) { .pad button { height: 48px; } .pad.sd button { height: 42px; } .pad.ks button { height: 46px; } .app, .screen { gap: 10px; } }
+@media (max-height: 640px) { .ng-modes button { height: 44px; } .pad button { height: 48px; } .pad.sd button { height: 42px; } .pad.ks button { height: 46px; } .app, .screen { gap: 10px; } }
 </style>
 
 <div class="app">
@@ -642,6 +689,39 @@ svg.lines .cage.on .dash { stroke: var(--accent); stroke-width: .05; opacity: 1;
       <button id="ksEraseBtn"><svg viewBox="0 0 24 24"><path d="m7 21-4.3-4.3a1 1 0 0 1 0-1.4l10-10a1 1 0 0 1 1.4 0l5.6 5.6a1 1 0 0 1 0 1.4L11 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg>Стереть</button>
       <button id="ksNotesBtn" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Заметки</button>
       <button id="ksHintBtn" class="hint-btn"><svg viewBox="0 0 24 24"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0 0 12 2Z"/></svg>Подсказка</button>
+    </div>
+  </section>
+  <section class="screen" id="screen-nonogram" hidden>
+    <div class="bar">
+      <div class="seg" role="group" aria-label="Сложность">
+        <button data-lvl="easy" aria-pressed="false">5×5</button>
+        <button data-lvl="medium" aria-pressed="true">10×10</button>
+        <button data-lvl="hard" aria-pressed="false">15×15</button>
+      </div>
+      <button class="new-btn" id="ngNewBtn">Новая</button>
+    </div>
+
+    <div class="status">
+      <div>Время <b id="ngTimer">0:00</b></div>
+      <div>Решено <b id="ngSolved">0</b></div>
+      <div>Подсказок <b id="ngHints">0</b></div>
+    </div>
+
+    <div class="board-wrap ng" id="ngWrap">
+      <div class="ng-board" id="ngBoard" aria-label="Поле нонограммы"></div>
+      <div class="loading" id="ngLoading" hidden>Рисую новую картинку…</div>
+    </div>
+
+    <div class="ng-modes" role="group" aria-label="Что ставить">
+      <button id="ngModeFill" aria-pressed="true"><i></i>Закрасить</button>
+      <button id="ngModeCross" aria-pressed="false"><i></i>Крестик</button>
+    </div>
+
+    <div class="tools">
+      <button id="ngUndoBtn"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>Отменить</button>
+      <button id="ngRedoBtn"><svg viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg>Вернуть</button>
+      <button id="ngClearBtn"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M6 6l1 14h10l1-14"/></svg>Очистить</button>
+      <button id="ngHintBtn" class="hint-btn"><svg viewBox="0 0 24 24"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0 0 12 2Z"/></svg>Подсказка</button>
     </div>
   </section>
 </div>
