@@ -3,7 +3,7 @@ const NonogramApp = (() => {
   const E = Nonogram;
   const KEY = 'nonogram-dalya-v1';
   const GID = 'nonogram';
-  const LVL_NAME = { easy: '5×5', medium: '10×10', hard: '15×15' };
+  const LVL_NAME = { easy: '15×15', medium: '20×20', hard: '25×25' };
   const FILL = 1, CROSS = 2;
 
   let S = null;        // текущая партия: { p, st, elapsed, hints, mistakes, done, hist, redo }
@@ -11,16 +11,17 @@ const NonogramApp = (() => {
   let mode = FILL;
   let N = 0, cells = [], rowEls = [], colEls = [], corner = null, cs = 0, L = 0, T = 0;
   let cur = -1;        // клетка под пальцем / курсор клавиатуры
+  let zoom = false, zoomPref = null; // «Лупа»: поле крупнее экрана, двигается двумя пальцами; null = само
 
   function load() {
     try {
       const d = JSON.parse(localStorage.getItem(Profiles.key(KEY)) || 'null');
-      if (d) { level = d.level || level; mode = d.mode === CROSS ? CROSS : FILL; if (d.game && d.game.p) S = d.game; }
+      if (d) { level = d.level || level; mode = d.mode === CROSS ? CROSS : FILL; zoomPref = typeof d.zoom === 'boolean' ? d.zoom : null; if (d.game && d.game.p) S = d.game; }
     } catch (e) {}
   }
   function save() {
     if (Profiles.locked) return;
-    try { localStorage.setItem(Profiles.key(KEY), JSON.stringify({ level, mode, game: S })); } catch (e) {}
+    try { localStorage.setItem(Profiles.key(KEY), JSON.stringify({ level, mode, zoom: zoomPref, game: S })); } catch (e) {}
   }
   const fresh = p => ({ p, st: new Array(p.N * p.N).fill(0), elapsed: 0, hints: 0, mistakes: 0, done: false, hist: [], redo: [] });
 
@@ -80,9 +81,11 @@ const NonogramApp = (() => {
     if (!S || !N) return;
     const wrap = $('ngWrap'), board = $('ngBoard');
     const p = S.p;
-    const units = cl => (cl.length ? cl : [0]).reduce((a, v) => a + (v >= 10 ? .95 : .62), 0) + .35;
-    const lu = Math.max(1, ...p.rows.map(units));
-    const tu = Math.max(1, ...p.cols.map(cl => (cl.length || 1) * .66 + .35));
+    // размеры чисел в пикселях при клетке k (те же формулы, что в стилях .ng-clue)
+    const fs = k => Math.max(8, Math.min(17, k * .55));
+    const rowW = (k, cl) => { cl = cl.length ? cl : [0]; return cl.reduce((a, v) => a + String(v).length * fs(k) * .64, 0) + Math.max(3, k * .16) * (cl.length - 1) + Math.max(4, k * .2) + 6; };
+    const sizeL = k => Math.ceil(Math.max(k, ...p.rows.map(cl => rowW(k, cl))));
+    const sizeT = k => Math.ceil(Math.max(k, Math.max(...p.cols.map(cl => cl.length || 1)) * (fs(k) + Math.max(1, k * .1)) + Math.max(4, k * .18) + 4));
     const W = wrap.clientWidth;
     // сколько места по высоте: всё окно минус то, что выше поля, и то, что ниже
     const top = wrap.getBoundingClientRect().top + scrollY;
@@ -90,11 +93,18 @@ const NonogramApp = (() => {
     for (let el = wrap.nextElementSibling; el; el = el.nextElementSibling) below += el.offsetHeight + 14;
     const cssB = parseFloat(getComputedStyle(document.documentElement).paddingBottom) || 0;
     const H = Math.max(220, innerHeight - top - below - 16 - cssB - 12);
-    cs = Math.floor(Math.min((W - 10) / (N + lu), H / (N + tu), N <= 5 ? 52 : 40));
-    L = Math.ceil(lu * cs); T = Math.ceil(tu * cs);
+    cs = 40;
+    while (cs > 6 && (sizeL(cs) + N * cs > W - 10 || sizeT(cs) + N * cs > H)) cs--;
+    // с лупой клетки крупные, а поле прокручивается внутри рамки высотой H.
+    // Пока игрок сам не выбрал, лупа включается, когда клетки на весь экран слишком мелкие
+    zoom = zoomPref ?? cs < 16;
+    if (zoom) cs = Math.max(cs, Math.min(32, Math.floor(cs * 2)));
+    wrap.classList.toggle('zoom', zoom);
+    wrap.style.height = zoom ? `${Math.floor(H)}px` : '';
+    L = sizeL(cs); T = sizeT(cs);
     board.style.gridTemplateColumns = `${L}px repeat(${N}, ${cs}px)`;
     board.style.gridTemplateRows = `${T}px repeat(${N}, ${cs}px)`;
-    board.style.setProperty('--cs', cs + 'px');
+    board.style.setProperty('--cs', cs + 'px'); board.style.setProperty('--fs', fs(cs) + 'px');
     const dpr = devicePixelRatio || 1;
     corner.width = L * dpr; corner.height = T * dpr;
     drawCorner();
@@ -146,6 +156,7 @@ const NonogramApp = (() => {
       d.classList.toggle('cur', !S.done && i === cur);
     }
     $('ngModeFill').setAttribute('aria-pressed', String(mode === FILL));
+    $('ngZoomBtn').setAttribute('aria-pressed', String(zoom));
     $('ngModeCross').setAttribute('aria-pressed', String(mode === CROSS));
     $('ngUndoBtn').disabled = S.done || !S.hist.length;
     $('ngRedoBtn').disabled = S.done || !S.redo.length;
@@ -195,12 +206,21 @@ const NonogramApp = (() => {
   // Касание меняет клетку, протяжка красит всю линию в том же направлении.
   // Что делать, решает первая клетка: закрасить, поставить крестик или стереть.
   let drag = null;
+  const pts = new Map(); // пальцы на поле: при втором пальце рисование отменяется и поле двигается
+  let pan = null;
   function cellAt(x, y) {
     const r0 = cells[0].getBoundingClientRect();
     const c = Math.floor((x - r0.left) / cs), r = Math.floor((y - r0.top) / cs);
     return { r: Math.max(0, Math.min(N - 1, r)), c: Math.max(0, Math.min(N - 1, c)), inside: r >= 0 && c >= 0 && r < N && c < N };
   }
   function onDown(e) {
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pts.size >= 2) {
+      e.preventDefault();
+      if (drag) { for (const [i, from] of drag.touched) S.st[i] = from; drag = null; render(); }
+      const w = $('ngWrap'); pan = { x: mid().x, y: mid().y, sl: w.scrollLeft, st: w.scrollTop };
+      return;
+    }
     if (!S || S.done || drag) return;
     const at = cellAt(e.clientX, e.clientY);
     if (!at.inside) return;
@@ -212,7 +232,15 @@ const NonogramApp = (() => {
     cur = i;
     paint(at.r, at.c);
   }
+  const mid = () => { const a = [...pts.values()]; return { x: (a[0].x + a[1].x) / 2, y: (a[0].y + a[1].y) / 2 }; };
   function onMove(e) {
+    if (pts.has(e.pointerId)) pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pan && pts.size >= 2) {
+      e.preventDefault();
+      const w = $('ngWrap'), m = mid();
+      w.scrollLeft = pan.sl - (m.x - pan.x); w.scrollTop = pan.st - (m.y - pan.y);
+      return;
+    }
     if (!drag || e.pointerId !== drag.id) return;
     e.preventDefault();
     const at = cellAt(e.clientX, e.clientY);
@@ -234,6 +262,8 @@ const NonogramApp = (() => {
     render();
   }
   function onUp(e) {
+    pts.delete(e.pointerId);
+    if (pts.size < 2) pan = null;
     if (!drag || e.pointerId !== drag.id) return;
     const ch = [...drag.touched].map(([i, from]) => [i, from, S.st[i]]);
     drag = null;
@@ -263,6 +293,7 @@ const NonogramApp = (() => {
     S.st.forEach((v, i) => { if ((v === FILL && sol[i] !== 1) || (v === CROSS && sol[i] === 1)) wrong.push(i); });
     if (wrong.length) {
       flash(wrong, 'oops');
+      if (zoom) cells[wrong[0]].scrollIntoView({ block: 'center', inline: 'center' });
       sheet({
         title: 'Тут закралась ошибка',
         body: `<p>${wrong.length === 1 ? 'Выделенная клетка отмечена' : `Выделенные клетки (${wrong.length}) отмечены`} неверно. Если ${wrong.length === 1 ? 'её' : 'их'} очистить, дальше пойдёт легче.</p>`,
@@ -277,6 +308,7 @@ const NonogramApp = (() => {
     setTimeout(() => el.classList.remove('hint'), 3800);
     flash(step.fill); flash(step.empty, 'hint-x');
     cur = step.fill[0] ?? step.empty[0]; render();
+    if (zoom) cells[cur].scrollIntoView({ block: 'center', inline: 'center' });
     const cl = step.clue, sum = cl.reduce((a, b) => a + b, 0) + Math.max(0, cl.length - 1);
     const known = step.cells.some(i => S.st[i]);
     const blocks = cl.length > 1 ? `блоки ${cl.join(', ')}` : `блок ${cl[0]}`;
@@ -364,6 +396,7 @@ const NonogramApp = (() => {
         .then(ok => { if (ok && !S.done) apply(S.st.map((v, i) => [i, v, 0]), false); });
     };
     $('ngHintBtn').onclick = askHint;
+    $('ngZoomBtn').onclick = () => { zoomPref = !zoom; save(); layout(); render(); };
     let rt = 0;
     addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { if (!$('screen-nonogram').hidden) layout(); }, 80); });
   }
@@ -392,12 +425,12 @@ const NonogramApp = (() => {
   }
   load();
   Track.register(GID, {
-    title: 'Нонограммы', speed: [600, 360, 210],
+    title: 'Нонограммы', speed: [1500, 900, 540],
     extra: (g, n) => [
       { id: 'nonogram-cells', icon: 'brush', title: 'Кисть мастера', tiers: [500, 3000, 15000], val: () => (g().extra || {}).cells || 0,
         desc: t => `Верно закрась ${n(t, 'клетку', 'клетки', 'клеток')} в нонограммах` },
       { id: 'nonogram-pure', icon: 'pixel', title: 'Чистый холст', tiers: [1, 5, 20], val: () => (g().perfect || {}).hard || 0,
-        desc: t => `Разгадай большую нонограмму 15×15 без подсказок и ошибок${t > 1 ? ` ${n(t, 'раз', 'раза', 'раз')}` : ''}` },
+        desc: t => `Разгадай самую большую нонограмму 25×25 без подсказок и ошибок${t > 1 ? ` ${n(t, 'раз', 'раза', 'раз')}` : ''}` },
     ],
   });
   addEventListener('pagehide', () => S && save());

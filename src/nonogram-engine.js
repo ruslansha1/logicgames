@@ -3,7 +3,7 @@
 // Задача годится, только если она решается построчной логикой без перебора: тогда решение
 // единственное, и для каждой клетки есть объяснение «в этой строке иначе нельзя».
 const Nonogram = (() => {
-  const SIZE = { easy: 5, medium: 10, hard: 15 };
+  const SIZE = { easy: 15, medium: 20, hard: 25 };
 
   const runs = line => {
     const r = []; let k = 0;
@@ -146,7 +146,7 @@ const Nonogram = (() => {
   // получаются цельные фигуры и узоры, а не россыпь точек.
   function picture(N, density) {
     let g = Array.from({ length: N * N }, () => (Math.random() < density ? 1 : 0));
-    const steps = N <= 5 ? 0 : N <= 10 ? 1 : 2;
+    const steps = N <= 5 ? 0 : N <= 10 ? 1 : N <= 20 ? 2 : 3;
     for (let s = 0; s < steps; s++) {
       const h = g.slice();
       for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
@@ -184,10 +184,10 @@ const Nonogram = (() => {
       const res = logicSolve(cl, N);
       if (!res.ok) continue;
       const p = { N, difficulty, solution: g, rows: cl.rows, cols: cl.cols, sweeps: res.sweeps };
-      // на сложной берём задачу, где логика идёт дольше (больше проходов по линиям)
-      if (difficulty !== 'hard') return p;
+      // на средней и сложной берём задачу, где логика идёт дольше (больше проходов по линиям)
+      if (difficulty === 'easy') return p;
       if (!best || p.sweeps > best.sweeps) best = p;
-      if (best.sweeps >= 7 || tries > 120) return best;
+      if (best.sweeps >= (difficulty === 'hard' ? 9 : 6) || tries > 120) return best;
     }
     return best || generate(difficulty);
   }

@@ -3,7 +3,7 @@ const GAMES = {
   suguru: { app: SuguruApp, title: 'Сугуру', size: '9×9', about: 'Области с числами, одинаковые не касаются' },
   sudoku: { app: SudokuApp, title: 'Судоку', size: '12×12', about: 'Числа 1–12 в строках, столбцах и блоках' },
   killer: { app: KillerApp, title: 'Киллер-судоку', brand: 'Киллер', size: '9×9', about: 'Судоку, где вместо цифр подсказками служат суммы' },
-  nonogram: { app: NonogramApp, title: 'Нонограммы', brand: 'Ноно', size: '5–15', about: 'Японский кроссворд: закрась клетки по числам, и проступит картинка' },
+  nonogram: { app: NonogramApp, title: 'Нонограммы', brand: 'Ноно', size: '15–25', about: 'Японский кроссворд: закрась клетки по числам, и проступит картинка' },
 };
 const SHELL_KEY = 'logicgames-dalya-v1';
 let current = 'suguru';
